@@ -64,7 +64,8 @@ def professor():
 
         session_id = str(uuid.uuid4())[:8]
 
-        professor_ip = request.remote_addr
+        professor_ip = request.headers.get("X-Forwarded-For", request.remote_addr)
+        professor_ip = professor_ip.split(",")[0].strip()
         network = ipaddress.ip_network(professor_ip + "/24", strict=False)
         allowed_network = str(network)
 
@@ -175,7 +176,8 @@ def submit_attendance():
         return "Session has expired.", 401
 
     session_id = decoded["session_id"]
-    student_ip = request.remote_addr
+    student_ip = request.headers.get("X-Forwarded-For", request.remote_addr)
+    student_ip = student_ip.split(",")[0].strip()
 
     session = active_sessions.get(session_id)
     if not session:
