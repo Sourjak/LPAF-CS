@@ -69,7 +69,7 @@ def professor():
         allowed_network = str(network)
 
         token = generate_session_token(session_id)
-        student_link = f"/student?token={token}"
+        student_link = request.host_url + f"student?token={token}"
         qr_image = generate_qr_code(student_link)
 
         session_data = {
