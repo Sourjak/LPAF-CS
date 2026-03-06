@@ -113,7 +113,7 @@ def refresh_qr(session_id):
     token = generate_session_token(session_id)
     session["token"] = token
 
-    student_link = f"/student?token={token}"
+    student_link = request.host_url + f"student?token={token}"
     qr_image = generate_qr_code(student_link)
 
     return jsonify({
