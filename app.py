@@ -18,7 +18,7 @@ app = Flask(__name__)
 # -------------------------
 app.config["SECRET_KEY"] = "lpaf_super_secret_key"
 
-# Fix 1: Establish Absolute Paths for Render Stability
+# Absolute Paths for Render Stability
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(BASE_DIR, "database", "attendance.db")
 
@@ -57,22 +57,37 @@ def home():
 @app.route("/professor", methods=["GET", "POST"])
 def professor():
     if request.method == "POST":
-        email = request.form["email"]
-        subject = request.form["subject"]
-        section = request.form["section"]
-        department = request.form["department"]
+        # Capture form data
+        email = request.form.get("email", "").strip()
+        subject = request.form.get("subject", "").strip()
+        section = request.form.get("section", "").strip()
+        department = request.form.get("department", "").strip()
 
+        # Fix: Professor Form Validation
+        if not email or not subject or not section or not department:
+            return "All fields must be filled before generating QR.", 400
+
+        # Generate a unique 8-character ID for this specific lecture
         session_id = str(uuid.uuid4())[:8]
 
+        # Robust IP detection for Proxies (Render/Nginx)
         professor_ip = request.headers.get("X-Forwarded-For", request.remote_addr)
         professor_ip = professor_ip.split(",")[0].strip()
+        
+        # Define the allowed subnet based on the professor's network
         network = ipaddress.ip_network(professor_ip + "/24", strict=False)
         allowed_network = str(network)
 
+        # Generate the first rotating token
         token = generate_session_token(session_id)
+        
+        # Use absolute host URL for the QR code link
         student_link = request.host_url + f"student?token={token}"
+        
+        # Generate the QR Code image (Base64)
         qr_image = generate_qr_code(student_link)
 
+        # Store the session metadata in memory
         session_data = {
             "email": email,
             "subject": subject,
@@ -105,11 +120,12 @@ def refresh_qr(session_id):
 
     session = active_sessions[session_id]
 
-    # Fix 3: Session Cleanup (Popping expired sessions from memory)
+    # Session Cleanup (Popping expired sessions from memory)
     if time.time() - session["start_time"] > 300:
         active_sessions.pop(session_id, None)
         return jsonify({"error": "Session expired"}), 403
 
+    # Generate a new token for rotation
     token = generate_session_token(session_id)
     session["token"] = token
 
@@ -164,40 +180,46 @@ def submit_attendance():
     roll = request.form.get("roll", "").strip().upper()
     token = request.form.get("token")
 
-    # Fix 2: Prevent Empty Token Crash
+    # Prevent Empty Token Crash
     if not token:
         return "Invalid request - Missing verification token.", 400
 
     if not name or not roll:
         return "Name and Roll number are required.", 400
 
+    # Security Check 1: Verify the JWT Token
     decoded = verify_session_token(token)
     if not decoded:
         return "Session has expired.", 401
 
     session_id = decoded["session_id"]
+    
+    # Robust IP detection for Students
     student_ip = request.headers.get("X-Forwarded-For", request.remote_addr)
     student_ip = student_ip.split(",")[0].strip()
 
+    # Security Check 2: Verify Session exists in memory
     session = active_sessions.get(session_id)
     if not session:
         return "This attendance session is no longer active.", 400
 
+    # Security Check 3: Network Subnet Validation
     allowed_network = session["allowed_network"]
     if not is_ip_allowed(student_ip, allowed_network):
         return "You must be connected to the campus network to mark attendance.", 403
 
+    # Step 6: Database Logging & Duplicate Prevention (Roll or IP)
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
 
     cursor.execute(
-        "SELECT id FROM attendance WHERE session_id=? AND roll=?",
-        (session_id, roll)
+        "SELECT id FROM attendance WHERE session_id=? AND (roll=? OR ip=?)",
+        (session_id, roll, student_ip)
     )
 
     if cursor.fetchone():
         conn.close()
-        return "Attendance already recorded for this roll number.", 409
+        return "Attendance already submitted from this device or roll number.", 409
 
     cursor.execute(
         "INSERT INTO attendance (session_id, name, roll, ip) VALUES (?, ?, ?, ?)",
