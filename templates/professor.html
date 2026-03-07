@@ -1,328 +1,198 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<title>LPAF | Professor Dashboard</title>
-
-<script src="https://cdn.tailwindcss.com"></script>
-
-<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Share+Tech+Mono&family=Exo+2:wght@300;400;500;600&display=swap" rel="stylesheet">
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
-
-<!-- (ALL YOUR ORIGINAL CSS REMAINS UNCHANGED) -->
-
-<style>
-/* keeping your entire CSS exactly as you wrote it */
-</style>
-
+    <title>Professor Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
 
-<body>
-
-<!-- ORBS -->
-<div class="orb orb-1"></div>
-<div class="orb orb-2"></div>
-<div class="orb orb-3"></div>
-
-<canvas id="pcvs"></canvas>
-
-<div id="curDot"></div>
-<div id="curRing"></div>
-
-<div id="sp"></div>
-
-
-<!-- NAVBAR (UNCHANGED) -->
-<nav class="px-8 py-4">
-<div class="max-w-6xl mx-auto flex items-center justify-between">
-
-<div class="flex items-center gap-3">
-<div class="logo-icon">LPAF</div>
-
-<div>
-<div style="font-family:'Orbitron',sans-serif;font-size:0.7rem;font-weight:700;">LPAF Control</div>
-<div style="font-family:'Share Tech Mono',monospace;font-size:0.48rem;color:rgba(0,212,255,0.4);">SECURE ATTENDANCE SYSTEM</div>
-</div>
-</div>
-
-<div class="hidden md:flex items-center gap-8">
-<a href="#" class="nav-a on">Dashboard</a>
-<a href="#" class="nav-a">Session History</a>
-<a href="#" class="nav-a">System Logs</a>
-</div>
-
-<div class="flex items-center gap-3">
-<div class="badge"><span class="bdot"></span>SYSTEM ONLINE</div>
-<a href="/" class="back-btn">← Landing</a>
-</div>
-
-</div>
-</nav>
-
-
-
-<main style="padding-top:6rem;padding-bottom:5rem;">
-
-<div class="max-w-6xl mx-auto px-8">
-
-
-<!-- SESSION SETUP VIEW -->
-
-<div id="setupView">
-
-<div style="text-align:center;margin-bottom:2.5rem;">
-
-<span class="slabel">// PROFESSOR DASHBOARD</span>
-
-<h1 style="font-family:'Orbitron';font-size:1.6rem;font-weight:700;">
-New Attendance <span style="color:var(--cyan);">Session</span>
-</h1>
-
-<p style="font-family:'Share Tech Mono';font-size:0.62rem;color:rgba(255,255,255,0.28);">
-Configure and launch a secure QR attendance session
-</p>
-
-</div>
-
-
-<div style="max-width:26rem;margin:0 auto;">
-
-<form method="POST" class="card" style="padding:2rem;">
-
-<span class="slabel">// Start New Session</span>
-
-<div style="display:flex;flex-direction:column;gap:0.9rem;margin-top:1rem;">
-
-<input name="email" type="email" placeholder="Professor Email" class="inp" required>
-
-<input name="subject" placeholder="Subject Code" class="inp" required>
-
-<input name="section" placeholder="Section" class="inp" required>
-
-<input name="department" placeholder="Department" class="inp" required>
-
-<select name="duration" class="inp">
-
-<option value="300">5 Minutes</option>
-<option value="120">2 Minutes</option>
-<option value="60">1 Minute</option>
-
-</select>
-
-<button class="btn-p">Generate Secure QR</button>
-
-</div>
-
-</form>
-
-</div>
-
-</div>
-
-
-
-<!-- SESSION ACTIVE VIEW -->
-
-<div id="sessionView" class="hidden">
-
-<h1 style="font-family:'Orbitron';font-size:1.6rem;">Session Active</h1>
-
-<div class="card p-6 mt-6 text-center">
-
-<img id="qrImg" src="" style="width:180px;height:180px;margin:auto;background:white;padding:6px;border-radius:6px;">
-
-<div class="mt-6">
-
-<span id="timerMins" class="timer-num">00</span>
-<span class="timer-sep">:</span>
-<span id="timerSecs" class="timer-num">00</span>
-
-</div>
-
-<div class="mt-6">
-
-<button onclick="endSession()" class="btn-red">End Session</button>
-
-</div>
-
-</div>
-
-</div>
-
-</div>
-
-</main>
-
-
-
-<script>
-
-/* =============================
-   SAFE FLASK VARIABLES
-============================= */
-
-const FLASK = {
-
-qr_image: "{{ qr_image | default('') }}",
-
-session_id: "{{ session_id | default('') }}",
-
-subject: "{{ subject | default('') }}",
-
-section: "{{ section | default('') }}",
-
-department: "{{ department | default('') }}",
-
-start_time: Number("{{ start_time | default(0) }}"),
-
-duration: Number("{{ duration | default(300) }}")
-
-};
-
-
-let sessionClosed = false;
-
-
-/* =============================
-   SESSION DETECTION
-============================= */
-
-const hasSession = FLASK.session_id && FLASK.session_id.length > 0;
-
-if(hasSession){
-
-document.getElementById("setupView").classList.add("hidden");
-
-document.getElementById("sessionView").classList.remove("hidden");
-
-document.getElementById("qrImg").src = "data:image/png;base64," + FLASK.qr_image;
-
-startSession();
-
-}
-
-
-/* =============================
-   SESSION LOGIC
-============================= */
-
-function startSession(){
-
-updateTimer();
-
-setInterval(updateTimer,1000);
-
-setInterval(refreshQR,90000);
-
-}
-
-
-/* =============================
-   TIMER
-============================= */
-
-function updateTimer(){
-
-if(sessionClosed) return;
-
-const remaining = Math.max(
-0,
-FLASK.duration - (Date.now()/1000 - FLASK.start_time)
-);
-
-const mins = Math.floor(remaining/60);
-const secs = Math.floor(remaining%60);
-
-document.getElementById("timerMins").innerText =
-String(mins).padStart(2,"0");
-
-document.getElementById("timerSecs").innerText =
-String(secs).padStart(2,"0");
-
-if(remaining<=0 && !sessionClosed){
-
-sessionClosed = true;
-
-fetch("/end_session/"+FLASK.session_id)
-.then(r=>r.json())
-.then(()=>{
-alert("Session ended. Report emailed.");
-location.reload();
-})
-.catch(()=>location.reload());
-
-}
-
-}
-
-
-/* =============================
-   QR REFRESH
-============================= */
-
-function refreshQR(){
-
-if(sessionClosed) return;
-
-fetch("/refresh_qr/"+FLASK.session_id)
-
-.then(r=>r.json())
-
-.then(data=>{
-
-if(data.expired){
-
-sessionClosed = true;
-
-alert("Session expired. Report sent.");
-
-location.reload();
-
-return;
-
-}
-
-if(data.qr){
-
-document.getElementById("qrImg").src =
-"data:image/png;base64,"+data.qr;
-
-}
-
-});
-
-}
-
-
-/* =============================
-   MANUAL SESSION END
-============================= */
-
-function endSession(){
-
-if(!confirm("End session and generate report?")) return;
-
-sessionClosed = true;
-
-fetch("/end_session/"+FLASK.session_id)
-
-.then(r=>r.json())
-
-.then(()=>{
-
-alert("Session ended. Report emailed.");
-
-location.reload();
-
-});
-
-}
-
-</script>
+<body class="bg-[#0B0F1A] text-white p-10 font-sans">
+
+    <h1 class="text-3xl mb-6 font-bold tracking-tight">Professor Attendance Dashboard</h1>
+
+    {% if qr_image %}
+    <div class="bg-gray-900 p-8 rounded-xl w-fit shadow-2xl border border-gray-800">
+        <div class="flex justify-between items-center mb-6 gap-12">
+            <div>
+                <h2 class="text-xl text-cyan-400 font-semibold">Session Active</h2>
+                <p class="text-sm text-gray-400">ID: <span class="text-white font-mono">{{session_id}}</span></p>
+            </div>
+            
+            <button id="endBtn" onclick="endSession(event)" class="bg-red-600 hover:bg-red-500 disabled:bg-gray-700 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg font-bold transition-all shadow-md text-sm">
+                End Session Early
+            </button>
+        </div>
+        
+        <div class="mb-6 p-4 bg-gray-800/50 rounded-lg border border-gray-700">
+            <p class="text-sm text-gray-400 uppercase tracking-widest mb-1">Time Remaining</p>
+            <p id="timer" class="text-4xl font-black font-mono text-red-400">--:--</p>
+            <p class="text-xs text-gray-500 mt-2 italic">
+                QR refreshes every 90s • Session ends automatically at 0:00
+            </p>
+        </div>
+        
+        <div class="flex justify-center bg-white p-4 rounded-xl shadow-inner">
+            <img id="qrImage" src="data:image/png;base64,{{qr_image}}" class="w-64 h-64 object-contain">
+        </div>
+
+        <div class="mt-8 border-t border-gray-800 pt-6">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-medium">Live Submissions</h3>
+                <span id="submissionCount" class="text-3xl font-black text-cyan-400">0</span>
+            </div>
+            
+            <div class="mt-4">
+                <h4 class="text-xs uppercase tracking-widest text-gray-500 mb-3">Recent Activity</h4>
+                <ul id="recentList" class="text-sm space-y-2 max-h-40 overflow-y-auto pr-2 custom-scrollbar">
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-6">
+        <a href="/download_report/{{session_id}}">
+            <button class="bg-green-600 hover:bg-green-500 transition-all px-8 py-3 rounded-lg font-bold shadow-lg flex items-center gap-2">
+                <span>📊</span> Download Current Report
+            </button>
+        </a>
+    </div>
+
+    {% else %}
+    <form method="POST" class="space-y-4 max-w-md bg-gray-900 p-8 rounded-xl border border-gray-800 shadow-2xl">
+        <h2 class="text-2xl mb-4 font-bold text-cyan-400">Start New Session</h2>
+        
+        <div class="grid gap-4">
+            <input name="email" type="email" placeholder="Professor Email" required class="w-full p-3 rounded bg-gray-800 text-white border border-gray-700 focus:ring-2 focus:ring-cyan-500 outline-none transition-all">
+            <input name="subject" placeholder="Subject Code (e.g., CS401)" required class="w-full p-3 rounded bg-gray-800 text-white border border-gray-700 focus:ring-2 focus:ring-cyan-500 outline-none">
+            <input name="section" placeholder="Section (e.g., A)" required class="w-full p-3 rounded bg-gray-800 text-white border border-gray-700 focus:ring-2 focus:ring-cyan-500 outline-none">
+            <input name="department" placeholder="Department" required class="w-full p-3 rounded bg-gray-800 text-white border border-gray-700 focus:ring-2 focus:ring-cyan-500 outline-none">
+            
+            <div class="pt-2">
+                <label class="text-xs text-gray-400 uppercase tracking-wider font-bold">Set Expiry Timer</label>
+                <select name="duration" required class="w-full mt-1 p-3 rounded bg-gray-800 text-white border border-gray-700 focus:ring-2 focus:ring-cyan-500 outline-none cursor-pointer">
+                    <option value="60">1 Minute (Quick Test)</option>
+                    <option value="120">2 Minutes</option>
+                    <option value="300" selected>5 Minutes (Standard)</option>
+                </select>
+            </div>
+        </div>
+
+        <button class="w-full bg-cyan-600 hover:bg-cyan-400 text-white py-4 rounded-lg font-black mt-4 shadow-lg transform active:scale-95 transition-all">
+            GENERATE SECURE QR
+        </button>
+    </form>
+    {% endif %}
+
+    <script>
+        // Data passed from Flask Backend
+        const sessionId = "{{session_id}}";
+        const sessionStart = {{start_time or 0}};
+        const duration = {{duration or 300}}; 
+
+        // 1. UPDATED END SESSION LOGIC (Problem #4 Fix)
+        function endSession(event) {
+            if(confirm("Confirm: Stop attendance and generate final report?")) {
+                const btn = event.target;
+                btn.disabled = true;
+                btn.innerText = "Processing...";
+
+                fetch(`/end_session/${sessionId}`)
+                .then(res => res.json())
+                .then(data => {
+                    alert("Session Terminated. Report emailed.");
+                    location.reload();
+                })
+                .catch(err => {
+                    console.error("Error:", err);
+                    btn.disabled = false;
+                    btn.innerText = "End Session Early";
+                });
+            }
+        }
+
+        // 2. UPDATED TIMER WITH BACKEND SYNC (Problem #2 Fix)
+        function updateTimer() {
+            if (!sessionStart) return;
+            
+            const now = Date.now() / 1000;
+            const remaining = duration - (now - sessionStart);
+            
+            if (remaining <= 0) {
+                // Ensure backend processes expiry before reloading
+                fetch(`/end_session/${sessionId}`)
+                    .then(res => res.json())
+                    .then(data => {
+                        alert("Session ended. Attendance report emailed.");
+                        location.reload();
+                    })
+                    .catch(err => {
+                        console.error("Session end error:", err);
+                        location.reload(); // Fallback reload
+                    });
+                return;
+            }
+            
+            const m = Math.floor(remaining / 60);
+            const s = Math.floor(remaining % 60);
+            const timerEl = document.getElementById("timer");
+            
+            if (timerEl) {
+                timerEl.innerText = `${m}:${s < 10 ? "0" : ""}${s}`;
+                if (remaining < 30) timerEl.classList.add("animate-pulse");
+            }
+        }
+
+        // 3. UPDATED QR REFRESH (Problem #1 Fix)
+        function refreshQR() {
+            if (!sessionId) return;
+
+            fetch(`/refresh_qr/${sessionId}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.expired) {
+                        alert("Session expired. Report sent to professor.");
+                        location.reload();
+                        return;
+                    }
+
+                    if (data.qr) {
+                        document.getElementById("qrImage").src = "data:image/png;base64," + data.qr;
+                    }
+                })
+                .catch(err => console.error("QR refresh error:", err));
+        }
+
+        function updateStats() {
+            if (!sessionId) return;
+            fetch(`/session_stats/${sessionId}`)
+                .then(res => res.json())
+                .then(data => {
+                    document.getElementById("submissionCount").innerText = data.count;
+                    const list = document.getElementById("recentList");
+                    list.innerHTML = "";
+                    data.recent.forEach(item => {
+                        const li = document.createElement("li");
+                        li.className = "bg-gray-800 p-2 rounded border-l-4 border-cyan-500 flex justify-between";
+                        li.innerHTML = `<span>${item[0]}</span> <span class="text-gray-500 text-xs font-mono">${item[1]}</span>`;
+                        list.appendChild(li);
+                    });
+                });
+        }
+
+        // START LOOPS
+        if (sessionId) {
+            updateTimer();
+            updateStats();
+            setInterval(updateTimer, 1000);
+            setInterval(updateStats, 3000);
+            setInterval(refreshQR, 90000);
+        }
+    </script>
+
+    <style>
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #1f2937; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #0891b2; border-radius: 10px; }
+    </style>
 
 </body>
 </html>
