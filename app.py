@@ -24,14 +24,12 @@ DB_PATH = os.path.join(BASE_DIR, "database", "attendance.db")
 
 def init_db():
     """Ensures the local SQLite database directory and table are ready with Device ID migration."""
-    # Ensure the 'database' folder exists automatically
     os.makedirs(os.path.join(BASE_DIR, "database"), exist_ok=True)
     
-    # FIX 3: Added check_same_thread=False for stability under concurrent student requests
+    # FIX 3: Added check_same_thread=False for better concurrency handling
     conn = sqlite3.connect(DB_PATH, check_same_thread=False)
     cursor = conn.cursor()
     
-    # Create the table if it doesn't exist
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS attendance (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -43,7 +41,7 @@ def init_db():
     )
     """)
 
-    # SCHEMA MIGRATION: Ensure device_id column exists if table was created earlier
+    # SCHEMA MIGRATION: Ensure device_id column exists
     cursor.execute("PRAGMA table_info(attendance)")
     columns = [col[1] for col in cursor.fetchall()]
 
@@ -70,37 +68,26 @@ def home():
 @app.route("/professor", methods=["GET", "POST"])
 def professor():
     if request.method == "POST":
-        # Capture all form data and strip whitespace
         email = request.form.get("email", "").strip()
         subject = request.form.get("subject", "").strip()
         section = request.form.get("section", "").strip()
         department = request.form.get("department", "").strip()
 
-        # FORM VALIDATION: Prevent generating QR if fields are empty
         if not email or not subject or not section or not department:
             return "All fields must be filled before generating QR.", 400
 
-        # Generate a unique 8-character ID for this specific lecture
         session_id = str(uuid.uuid4())[:8]
 
-        # PROXY-AWARE IP LOGIC: Get real IP even if behind Render/Nginx load balancer
         professor_ip = request.headers.get("X-Forwarded-For", request.remote_addr)
         professor_ip = professor_ip.split(",")[0].strip()
         
-        # Define the allowed network subnet (/24)
         network = ipaddress.ip_network(professor_ip + "/24", strict=False)
         allowed_network = str(network)
 
-        # Generate the first rotating token
         token = generate_session_token(session_id)
-        
-        # Deployment-friendly absolute URL for the QR code
         student_link = request.host_url + f"student?token={token}"
-        
-        # Generate the QR Code image (Base64)
         qr_image = generate_qr_code(student_link)
 
-        # Store the session metadata in memory
         session_data = {
             "email": email,
             "subject": subject,
@@ -109,7 +96,7 @@ def professor():
             "professor_ip": professor_ip,
             "allowed_network": allowed_network,
             "token": token,
-            "start_time": time.time()  # Track the 5-minute limit
+            "start_time": time.time()
         }
         active_sessions[session_id] = session_data
 
@@ -133,12 +120,10 @@ def refresh_qr(session_id):
 
     session = active_sessions[session_id]
 
-    # SESSION CLEANUP: Pop expired sessions from memory to save resources
     if time.time() - session["start_time"] > 300:
         active_sessions.pop(session_id, None)
         return jsonify({"error": "Session expired"}), 403
 
-    # Generate a new token for rotation
     token = generate_session_token(session_id)
     session["token"] = token
 
@@ -161,19 +146,17 @@ def session_stats(session_id):
 
     return jsonify({
         "count": len(rows),
-        "recent": rows[-5:] # Last 5 students for live feedback
+        "recent": rows[-5:] 
     })
 
 @app.route("/download_report/<session_id>")
 def download_report(session_id):
-    # Retrieve metadata from the active session dictionary
     session = active_sessions.get(session_id)
 
-    # FIX 2: Better error message for the Session Expiry edge case
+    # FIX 2: Graceful error message for expired session metadata
     if not session:
-        return "Session expired but report can still be generated via the database admin.", 404
+        return "Session expired but report can still be generated via database admin.", 404
 
-    # The utility now receives all 5 required arguments (ID, Section, Subject, Dept, Email)
     file_path = generate_report(
         session_id,
         session["section"],
@@ -196,7 +179,6 @@ def student():
     if not token:
         return "Invalid QR Code - Missing Token", 400
 
-    # Decrypt and verify the JWT
     decoded = verify_session_token(token)
     if not decoded:
         return "The QR link has expired or is invalid.", 401
@@ -206,52 +188,44 @@ def student():
 
 @app.route("/submit_attendance", methods=["POST"])
 def submit_attendance():
-    # Capture inputs and normalize (Upper case roll numbers, stripped names)
     name = request.form.get("name", "").strip()
     roll = request.form.get("roll", "").strip().upper()
     token = request.form.get("token")
     
-    # FIX 1: Robust device_id capture with .strip() and default empty string
+    # FIX 1: Robust device_id capture and validation guard
     device_id = request.form.get("device_id", "").strip()
 
-    # Security Guard: Prevent crashes from missing tokens or empty fields
     if not token:
         return "Invalid request - Missing verification token.", 400
 
     if not name or not roll:
         return "Name and Roll number are required.", 400
     
-    # FIX 1 Guard: Block submission if device fingerprinting fails
+    # FIX 1 Guard: Ensure device fingerprint exists
     if not device_id:
         return "Device verification failed. Please refresh the page.", 400
 
-    # Security Check 1: Verify the JWT Token
     decoded = verify_session_token(token)
     if not decoded:
         return "Session has expired.", 401
 
     session_id = decoded["session_id"]
     
-    # Robust IP detection for Students (Proxy-aware for Render/Cloud)
     student_ip = request.headers.get("X-Forwarded-For", request.remote_addr)
     student_ip = student_ip.split(",")[0].strip()
 
-    # Security Check 2: Verify Session exists in memory
     session = active_sessions.get(session_id)
     if not session:
         return "This attendance session is no longer active.", 400
 
-    # Security Check 3: Layered Presence (Network Subnet Validation)
     allowed_network = session["allowed_network"]
     if not is_ip_allowed(student_ip, allowed_network):
         return "You must be connected to the campus network to mark attendance.", 403
 
-    # Step 6: Database Logging & Duplicate Prevention (Roll or Device ID)
     # FIX 3: Added check_same_thread=False
     conn = sqlite3.connect(DB_PATH, check_same_thread=False)
     cursor = conn.cursor()
 
-    # IMPROVED DUPLICATE CHECK: Block if same roll OR same device_id submits again in this session
     cursor.execute(
         "SELECT id FROM attendance WHERE session_id=? AND (roll=? OR device_id=?)",
         (session_id, roll, device_id)
@@ -261,7 +235,6 @@ def submit_attendance():
         conn.close()
         return "Attendance already recorded for this roll number or device.", 409
 
-    # Final Insertion with Device ID tracking
     cursor.execute(
         "INSERT INTO attendance (session_id, name, roll, ip, device_id) VALUES (?, ?, ?, ?, ?)",
         (session_id, name, roll, student_ip, device_id)
