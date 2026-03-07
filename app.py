@@ -10,6 +10,8 @@ from utils.qr_generator import generate_qr_code
 from utils.token_manager import generate_session_token, verify_session_token
 from utils.validator import is_ip_allowed
 from utils.report_generator import generate_report
+# Added for the new manual end session feature
+from utils.email_sender import send_email_with_report 
 
 app = Flask(__name__)
 
@@ -18,7 +20,6 @@ app = Flask(__name__)
 # -------------------------
 app.config["SECRET_KEY"] = "lpaf_super_secret_key"
 
-# Establish Absolute Paths to ensure Render doesn't lose the DB file
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(BASE_DIR, "database", "attendance.db")
 
@@ -26,7 +27,6 @@ def init_db():
     """Ensures the local SQLite database directory and table are ready with Device ID migration."""
     os.makedirs(os.path.join(BASE_DIR, "database"), exist_ok=True)
     
-    # FIX 3: Added check_same_thread=False for better concurrency handling
     conn = sqlite3.connect(DB_PATH, check_same_thread=False)
     cursor = conn.cursor()
     
@@ -41,7 +41,6 @@ def init_db():
     )
     """)
 
-    # SCHEMA MIGRATION: Ensure device_id column exists
     cursor.execute("PRAGMA table_info(attendance)")
     columns = [col[1] for col in cursor.fetchall()]
 
@@ -51,7 +50,6 @@ def init_db():
     conn.commit()
     conn.close()
 
-# Initialize DB and create a global dictionary for in-memory session tracking
 init_db()
 active_sessions = {}
 
@@ -72,6 +70,8 @@ def professor():
         subject = request.form.get("subject", "").strip()
         section = request.form.get("section", "").strip()
         department = request.form.get("department", "").strip()
+        # Capture custom duration (default to 300s if not provided)
+        duration = int(request.form.get("duration", 300))
 
         if not email or not subject or not section or not department:
             return "All fields must be filled before generating QR.", 400
@@ -96,7 +96,8 @@ def professor():
             "professor_ip": professor_ip,
             "allowed_network": allowed_network,
             "token": token,
-            "start_time": time.time()
+            "start_time": time.time(),
+            "duration": duration # Storing dynamic duration
         }
         active_sessions[session_id] = session_data
 
@@ -105,7 +106,8 @@ def professor():
             qr_image=qr_image,
             session_id=session_id,
             token=token,
-            start_time=session_data["start_time"]
+            start_time=session_data["start_time"],
+            duration=duration
         )
 
     return render_template("professor.html")
@@ -120,7 +122,8 @@ def refresh_qr(session_id):
 
     session = active_sessions[session_id]
 
-    if time.time() - session["start_time"] > 300:
+    # Updated Expiry Logic: Now compares against the user-defined duration
+    if time.time() - session["start_time"] > session["duration"]:
         active_sessions.pop(session_id, None)
         return jsonify({"error": "Session expired"}), 403
 
@@ -135,9 +138,32 @@ def refresh_qr(session_id):
         "token": token
     })
 
+@app.route("/end_session/<session_id>")
+def end_session(session_id):
+    session = active_sessions.get(session_id)
+
+    if not session:
+        return jsonify({"error": "Session not found"}), 404
+
+    # Generate the final report
+    report_path = generate_report(
+        session_id,
+        session["section"],
+        session["subject"],
+        session["department"],
+        session["email"]
+    )
+
+    # Email the report to the professor
+    send_email_with_report(session["email"], report_path)
+
+    # Clear session from memory
+    active_sessions.pop(session_id, None)
+
+    return jsonify({"status": "Session ended and report emailed"})
+
 @app.route("/session_stats/<session_id>")
 def session_stats(session_id):
-    # FIX 3: Added check_same_thread=False
     conn = sqlite3.connect(DB_PATH, check_same_thread=False)
     cursor = conn.cursor()
     cursor.execute("SELECT name, roll FROM attendance WHERE session_id=?", (session_id,))
@@ -153,7 +179,6 @@ def session_stats(session_id):
 def download_report(session_id):
     session = active_sessions.get(session_id)
 
-    # FIX 2: Graceful error message for expired session metadata
     if not session:
         return "Session expired but report can still be generated via database admin.", 404
 
@@ -191,8 +216,6 @@ def submit_attendance():
     name = request.form.get("name", "").strip()
     roll = request.form.get("roll", "").strip().upper()
     token = request.form.get("token")
-    
-    # FIX 1: Robust device_id capture and validation guard
     device_id = request.form.get("device_id", "").strip()
 
     if not token:
@@ -201,7 +224,6 @@ def submit_attendance():
     if not name or not roll:
         return "Name and Roll number are required.", 400
     
-    # FIX 1 Guard: Ensure device fingerprint exists
     if not device_id:
         return "Device verification failed. Please refresh the page.", 400
 
@@ -222,7 +244,6 @@ def submit_attendance():
     if not is_ip_allowed(student_ip, allowed_network):
         return "You must be connected to the campus network to mark attendance.", 403
 
-    # FIX 3: Added check_same_thread=False
     conn = sqlite3.connect(DB_PATH, check_same_thread=False)
     cursor = conn.cursor()
 
@@ -246,7 +267,7 @@ def submit_attendance():
     return render_template("success.html")
 
 # -------------------------
-# Step 7: Run Server
+# Step 6: Run Server
 # -------------------------
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
