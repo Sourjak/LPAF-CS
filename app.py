@@ -110,13 +110,13 @@ def professor():
 
         return render_template(
             "professor.html",
-            qr_image=qr_image,
-            session_id=session_id,
-            token=token,
-            start_time=session_data["start_time"],
-            duration=duration
-        )
-
+             qr_image=qr_image,
+             session_id=session_id,
+             token=token,
+             start_time=session_data["start_time"],
+             duration=session_data["duration"]
+       )
+            
     return render_template("professor.html")
 
 # -------------------------
