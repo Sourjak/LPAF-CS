@@ -5,43 +5,44 @@
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 
-<body class="bg-[#0B0F1A] text-white p-10">
+<body class="bg-[#0B0F1A] text-white p-10 font-sans">
 
-    <h1 class="text-3xl mb-6 font-bold">Professor Attendance Dashboard</h1>
+    <h1 class="text-3xl mb-6 font-bold tracking-tight">Professor Attendance Dashboard</h1>
 
     {% if qr_image %}
     <div class="bg-gray-900 p-8 rounded-xl w-fit shadow-2xl border border-gray-800">
-        <div class="flex justify-between items-start mb-4">
-            <h2 class="text-xl text-cyan-400 font-semibold">Session Active</h2>
-            <button onclick="endSession()" class="bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded-lg font-bold transition-colors shadow-md text-sm">
-                End Session
+        <div class="flex justify-between items-center mb-6 gap-12">
+            <div>
+                <h2 class="text-xl text-cyan-400 font-semibold">Session Active</h2>
+                <p class="text-sm text-gray-400">ID: <span class="text-white font-mono">{{session_id}}</span></p>
+            </div>
+            
+            <button onclick="endSession()" class="bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded-lg font-bold transition-all shadow-md text-sm">
+                End Session Early
             </button>
         </div>
         
-        <div class="space-y-1 mb-6">
-            <p class="text-sm text-gray-400">Session ID: <span class="text-white">{{session_id}}</span></p>
-            
-            <p class="text-lg">
-                Time Remaining: 
-                <span id="timer" class="font-mono text-red-400 font-bold">--:--</span>
-            </p>
-            
-            <p class="text-xs text-gray-500 italic">
-                QR refreshes every 90 seconds for security
+        <div class="mb-6 p-4 bg-gray-800/50 rounded-lg border border-gray-700">
+            <p class="text-sm text-gray-400 uppercase tracking-widest mb-1">Time Remaining</p>
+            <p id="timer" class="text-4xl font-black font-mono text-red-400">--:--</p>
+            <p class="text-xs text-gray-500 mt-2 italic">
+                QR refreshes every 90s • Session ends automatically at 0:00
             </p>
         </div>
         
-        <img id="qrImage" src="data:image/png;base64,{{qr_image}}" class="w-64 bg-white p-2 rounded-lg">
+        <div class="flex justify-center bg-white p-4 rounded-xl shadow-inner">
+            <img id="qrImage" src="data:image/png;base64,{{qr_image}}" class="w-64 h-64 object-contain">
+        </div>
 
         <div class="mt-8 border-t border-gray-800 pt-6">
             <div class="flex items-center justify-between mb-4">
-                <h3 class="text-lg">Live Submissions</h3>
+                <h3 class="text-lg font-medium">Live Submissions</h3>
                 <span id="submissionCount" class="text-3xl font-black text-cyan-400">0</span>
             </div>
             
             <div class="mt-4">
                 <h4 class="text-xs uppercase tracking-widest text-gray-500 mb-3">Recent Activity</h4>
-                <ul id="recentList" class="text-sm space-y-2 max-h-40 overflow-y-auto pr-2">
+                <ul id="recentList" class="text-sm space-y-2 max-h-40 overflow-y-auto pr-2 custom-scrollbar">
                     </ul>
             </div>
         </div>
@@ -50,65 +51,92 @@
     <div class="mt-6">
         <a href="/download_report/{{session_id}}">
             <button class="bg-green-600 hover:bg-green-500 transition-all px-8 py-3 rounded-lg font-bold shadow-lg flex items-center gap-2">
-                <span>📊</span> Download Attendance Report
+                <span>📊</span> Download Current Report
             </button>
         </a>
     </div>
 
     {% else %}
-    <form method="POST" class="space-y-4 max-w-md bg-gray-900 p-8 rounded-xl border border-gray-800">
-        <h2 class="text-xl mb-4 font-semibold">Start New Session</h2>
-        <input name="email" type="email" placeholder="Professor Email" required class="w-full p-3 rounded bg-gray-800 text-white border border-gray-700 focus:ring-2 focus:ring-cyan-500 outline-none">
-        <input name="subject" placeholder="Subject Code" required class="w-full p-3 rounded bg-gray-800 text-white border border-gray-700 focus:ring-2 focus:ring-cyan-500 outline-none">
-        <input name="section" placeholder="Section" required class="w-full p-3 rounded bg-gray-800 text-white border border-gray-700 focus:ring-2 focus:ring-cyan-500 outline-none">
-        <input name="department" placeholder="Department" required class="w-full p-3 rounded bg-gray-800 text-white border border-gray-700 focus:ring-2 focus:ring-cyan-500 outline-none">
+    <form method="POST" class="space-y-4 max-w-md bg-gray-900 p-8 rounded-xl border border-gray-800 shadow-2xl">
+        <h2 class="text-2xl mb-4 font-bold text-cyan-400">Start New Session</h2>
         
-        <div class="space-y-1">
-            <label class="text-xs text-gray-400 uppercase tracking-wider">Session Duration</label>
-            <select name="duration" required class="w-full p-3 rounded bg-gray-800 text-white border border-gray-700 focus:ring-2 focus:ring-cyan-500 outline-none">
-                <option value="60">1 Minute</option>
-                <option value="120">2 Minutes</option>
-                <option value="300" selected>5 Minutes</option>
-            </select>
+        <div class="grid gap-4">
+            <input name="email" type="email" placeholder="Professor Email" required class="w-full p-3 rounded bg-gray-800 text-white border border-gray-700 focus:ring-2 focus:ring-cyan-500 outline-none transition-all">
+            <input name="subject" placeholder="Subject Code (e.g., CS401)" required class="w-full p-3 rounded bg-gray-800 text-white border border-gray-700 focus:ring-2 focus:ring-cyan-500 outline-none">
+            <input name="section" placeholder="Section (e.g., A)" required class="w-full p-3 rounded bg-gray-800 text-white border border-gray-700 focus:ring-2 focus:ring-cyan-500 outline-none">
+            <input name="department" placeholder="Department" required class="w-full p-3 rounded bg-gray-800 text-white border border-gray-700 focus:ring-2 focus:ring-cyan-500 outline-none">
+            
+            <div class="pt-2">
+                <label class="text-xs text-gray-400 uppercase tracking-wider font-bold">Set Expiry Timer</label>
+                <select name="duration" required class="w-full mt-1 p-3 rounded bg-gray-800 text-white border border-gray-700 focus:ring-2 focus:ring-cyan-500 outline-none cursor-pointer">
+                    <option value="60">1 Minute (Quick Test)</option>
+                    <option value="120">2 Minutes</option>
+                    <option value="300" selected>5 Minutes (Standard)</option>
+                </select>
+            </div>
         </div>
 
-        <button class="w-full bg-cyan-600 hover:bg-cyan-500 transition-all py-3 rounded-lg font-bold mt-2 shadow-lg">
-            Generate QR Session
+        <button class="w-full bg-cyan-600 hover:bg-cyan-400 text-white py-4 rounded-lg font-black mt-4 shadow-lg transform active:scale-95 transition-all">
+            GENERATE SECURE QR
         </button>
     </form>
     {% endif %}
 
     <script>
-        // Global Variables from Flask
+        // Data passed from Flask Backend
         const sessionId = "{{session_id}}";
         const sessionStart = {{start_time or 0}};
-        const duration = {{duration or 300}}; // Dynamically set from Flask/Form
+        const duration = {{duration or 300}}; 
 
-        // End Session Logic
+        // 1. END SESSION LOGIC
         function endSession() {
-            if(confirm("Are you sure you want to end this session early?")) {
+            if(confirm("Confirm: Stop attendance and generate final report?")) {
                 fetch(`/end_session/${sessionId}`)
                 .then(res => res.json())
                 .then(data => {
-                    alert("Session ended and report sent!");
+                    alert("Session Terminated. Report has been processed.");
                     location.reload();
                 })
-                .catch(err => console.error("Error ending session:", err));
+                .catch(err => console.error("Error:", err));
             }
         }
 
-        // QR Refresh Logic
+        // 2. UPDATED COUNTDOWN TIMER
+        function updateTimer() {
+            if (!sessionStart) return;
+            
+            const now = Date.now() / 1000;
+            const remaining = duration - (now - sessionStart);
+            
+            if (remaining <= 0) {
+                location.reload(); // Refresh to hide QR once expired
+                return;
+            }
+            
+            const m = Math.floor(remaining / 60);
+            const s = Math.floor(remaining % 60);
+            const timerEl = document.getElementById("timer");
+            
+            if (timerEl) {
+                timerEl.innerText = `${m}:${s < 10 ? "0" : ""}${s}`;
+                
+                // Visual feedback for last 30 seconds
+                if (remaining < 30) {
+                    timerEl.classList.add("animate-pulse");
+                }
+            }
+        }
+
+        // 3. LIVE STATS & QR REFRESH
         function refreshQR() {
             if (!sessionId) return;
             fetch(`/refresh_qr/${sessionId}`)
                 .then(res => res.json())
                 .then(data => {
                     if (data.qr) document.getElementById("qrImage").src = "data:image/png;base64," + data.qr;
-                })
-                .catch(err => console.error("QR Refresh Failed"));
+                });
         }
 
-        // Live Stats Logic
         function updateStats() {
             if (!sessionId) return;
             fetch(`/session_stats/${sessionId}`)
@@ -119,46 +147,28 @@
                     list.innerHTML = "";
                     data.recent.forEach(item => {
                         const li = document.createElement("li");
-                        li.className = "bg-gray-800 p-2 rounded border-l-4 border-cyan-500 animate-pulse";
-                        li.textContent = `${item[0]} (${item[1]})`;
+                        li.className = "bg-gray-800 p-2 rounded border-l-4 border-cyan-500 flex justify-between";
+                        li.innerHTML = `<span>${item[0]}</span> <span class="text-gray-500 text-xs">${item[1]}</span>`;
                         list.appendChild(li);
-                        setTimeout(() => li.classList.remove('animate-pulse'), 1000);
                     });
                 });
         }
 
-        // Countdown Timer Logic
-        function updateTimer() {
-            if (!sessionStart) return;
-            const now = Math.floor(Date.now() / 1000);
-            const remaining = Math.max(0, duration - (now - sessionStart));
-            
-            const mins = Math.floor(remaining / 60);
-            const secs = String(remaining % 60).padStart(2, '0');
-            
-            const timerEl = document.getElementById("timer");
-            if(timerEl) {
-                timerEl.innerText = `${mins}:${secs}`;
-
-                if (remaining === 0) {
-                    timerEl.classList.replace("text-red-400", "text-gray-500");
-                    document.getElementById("qrImage").style.opacity = "0.2";
-                    document.getElementById("qrImage").style.filter = "grayscale(1)";
-                } else if (remaining < 60) {
-                    timerEl.classList.add("animate-bounce");
-                }
-            }
-        }
-
-        // Initialize Loops
+        // START LOOPS
         if (sessionId) {
-            updateStats();
             updateTimer();
-            setInterval(refreshQR, 90000); // 90s
-            setInterval(updateStats, 3000); // 3s
-            setInterval(updateTimer, 1000); // 1s
+            updateStats();
+            setInterval(updateTimer, 1000);
+            setInterval(updateStats, 3000);
+            setInterval(refreshQR, 90000);
         }
     </script>
+
+    <style>
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #1f2937; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #0891b2; border-radius: 10px; }
+    </style>
 
 </body>
 </html>
