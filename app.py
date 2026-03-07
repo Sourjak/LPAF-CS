@@ -164,7 +164,20 @@ def session_stats(session_id):
 
 @app.route("/download_report/<session_id>")
 def download_report(session_id):
-    file_path = generate_report(session_id)
+    # Step 1 Modified: Retrieve metadata from the active session
+    session = active_sessions.get(session_id)
+
+    if not session:
+        return "Session not found", 404
+
+    # Pass session-specific details to the generator
+    file_path = generate_report(
+        session_id,
+        session["section"],
+        session["subject"],
+        session["department"]
+    )
+
     if not file_path:
         return "No records available for download.", 404
     
