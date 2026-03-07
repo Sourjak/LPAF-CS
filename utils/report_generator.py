@@ -4,6 +4,8 @@ import os
 
 def generate_report(session_id):
 
+    os.makedirs("reports", exist_ok=True)
+
     conn = sqlite3.connect("database/attendance.db")
 
     attendance = pd.read_sql_query(
@@ -14,17 +16,29 @@ def generate_report(session_id):
 
     conn.close()
 
-    roster = pd.read_csv("utils/roll_list.csv")
+    # Load full class roster
+    roster_path = "utils/roll_list.csv"
+
+    if not os.path.exists(roster_path):
+        raise Exception("roll_list.csv not found")
+
+    roster = pd.read_csv(roster_path)
 
     roster["roll"] = roster["roll"].astype(str)
 
     attendance["roll"] = attendance["roll"].astype(str)
 
+    # Mark attendance status
     roster["Status"] = roster["roll"].apply(
-        lambda x: "Present" if x in attendance["roll"].values else "Absent"
+        lambda r: "Present" if r in attendance["roll"].values else "Absent"
     )
 
-    roster = roster.merge(attendance[["roll","ip"]], on="roll", how="left")
+    # Merge IP addresses
+    roster = roster.merge(
+        attendance[["roll","ip"]],
+        on="roll",
+        how="left"
+    )
 
     roster.rename(columns={
         "roll": "Roll Number",
@@ -34,9 +48,6 @@ def generate_report(session_id):
 
     file_path = f"reports/session_{session_id}.xlsx"
 
-    os.makedirs("reports", exist_ok=True)
-
-    with pd.ExcelWriter(file_path, engine="openpyxl") as writer:
-        roster.to_excel(writer, index=False)
+    roster.to_excel(file_path, index=False)
 
     return file_path
