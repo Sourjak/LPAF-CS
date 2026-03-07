@@ -18,25 +18,37 @@ app = Flask(__name__)
 # -------------------------
 app.config["SECRET_KEY"] = "lpaf_super_secret_key"
 
-# Absolute Paths for Render Stability
+# Establish Absolute Paths to ensure Render doesn't lose the DB file
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(BASE_DIR, "database", "attendance.db")
 
 def init_db():
-    """Ensures the local SQLite database directory and table are ready."""
+    """Ensures the local SQLite database directory and table are ready with Device ID migration."""
+    # Ensure the 'database' folder exists
     os.makedirs(os.path.join(BASE_DIR, "database"), exist_ok=True)
     
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
+    
+    # Create the table if it doesn't exist
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS attendance (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         session_id TEXT,
         name TEXT,
         roll TEXT,
-        ip TEXT
+        ip TEXT,
+        device_id TEXT
     )
     """)
+
+    # SCHEMA MIGRATION: Ensure device_id column exists if table was created earlier
+    cursor.execute("PRAGMA table_info(attendance)")
+    columns = [col[1] for col in cursor.fetchall()]
+
+    if "device_id" not in columns:
+        cursor.execute("ALTER TABLE attendance ADD COLUMN device_id TEXT")
+
     conn.commit()
     conn.close()
 
@@ -57,31 +69,31 @@ def home():
 @app.route("/professor", methods=["GET", "POST"])
 def professor():
     if request.method == "POST":
-        # Capture form data
+        # Capture all form data and strip whitespace
         email = request.form.get("email", "").strip()
         subject = request.form.get("subject", "").strip()
         section = request.form.get("section", "").strip()
         department = request.form.get("department", "").strip()
 
-        # Fix: Professor Form Validation
+        # FORM VALIDATION: Prevent generating QR if fields are empty
         if not email or not subject or not section or not department:
             return "All fields must be filled before generating QR.", 400
 
         # Generate a unique 8-character ID for this specific lecture
         session_id = str(uuid.uuid4())[:8]
 
-        # Robust IP detection for Proxies (Render/Nginx)
+        # PROXY-AWARE IP LOGIC: Get real IP even if behind Render/Nginx load balancer
         professor_ip = request.headers.get("X-Forwarded-For", request.remote_addr)
         professor_ip = professor_ip.split(",")[0].strip()
         
-        # Define the allowed subnet based on the professor's network
+        # Define the allowed network subnet (/24)
         network = ipaddress.ip_network(professor_ip + "/24", strict=False)
         allowed_network = str(network)
 
         # Generate the first rotating token
         token = generate_session_token(session_id)
         
-        # Use absolute host URL for the QR code link
+        # Deployment-friendly absolute URL for the QR code
         student_link = request.host_url + f"student?token={token}"
         
         # Generate the QR Code image (Base64)
@@ -96,7 +108,7 @@ def professor():
             "professor_ip": professor_ip,
             "allowed_network": allowed_network,
             "token": token,
-            "start_time": time.time()
+            "start_time": time.time()  # Track the 5-minute limit
         }
         active_sessions[session_id] = session_data
 
@@ -120,7 +132,7 @@ def refresh_qr(session_id):
 
     session = active_sessions[session_id]
 
-    # Session Cleanup (Popping expired sessions from memory)
+    # SESSION CLEANUP: Pop expired sessions from memory
     if time.time() - session["start_time"] > 300:
         active_sessions.pop(session_id, None)
         return jsonify({"error": "Session expired"}), 403
@@ -147,7 +159,7 @@ def session_stats(session_id):
 
     return jsonify({
         "count": len(rows),
-        "recent": rows[-5:] 
+        "recent": rows[-5:] # Last 5 students for live feedback
     })
 
 @app.route("/download_report/<session_id>")
@@ -167,6 +179,7 @@ def student():
     if not token:
         return "Invalid QR Code - Missing Token", 400
 
+    # Decrypt and verify the JWT
     decoded = verify_session_token(token)
     if not decoded:
         return "The QR link has expired or is invalid.", 401
@@ -176,11 +189,13 @@ def student():
 
 @app.route("/submit_attendance", methods=["POST"])
 def submit_attendance():
+    # Capture inputs and normalize
     name = request.form.get("name", "").strip()
     roll = request.form.get("roll", "").strip().upper()
     token = request.form.get("token")
+    device_id = request.form.get("device_id") # Captured from student.html
 
-    # Prevent Empty Token Crash
+    # Security Guard: Prevent crashes from missing tokens or empty fields
     if not token:
         return "Invalid request - Missing verification token.", 400
 
@@ -194,7 +209,7 @@ def submit_attendance():
 
     session_id = decoded["session_id"]
     
-    # Robust IP detection for Students
+    # Robust IP detection for Students (Proxy-aware)
     student_ip = request.headers.get("X-Forwarded-For", request.remote_addr)
     student_ip = student_ip.split(",")[0].strip()
 
@@ -203,27 +218,29 @@ def submit_attendance():
     if not session:
         return "This attendance session is no longer active.", 400
 
-    # Security Check 3: Network Subnet Validation
+    # Security Check 3: Layered Presence (Network Subnet Validation)
     allowed_network = session["allowed_network"]
     if not is_ip_allowed(student_ip, allowed_network):
         return "You must be connected to the campus network to mark attendance.", 403
 
-    # Step 6: Database Logging & Duplicate Prevention (Roll or IP)
+    # Step 6: Database Logging & Duplicate Prevention (Roll or Device ID)
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
 
+    # IMPROVED DUPLICATE CHECK: Block if same roll OR same device_id submits again
     cursor.execute(
-        "SELECT id FROM attendance WHERE session_id=? AND (roll=? OR ip=?)",
-        (session_id, roll, student_ip)
+        "SELECT id FROM attendance WHERE session_id=? AND (roll=? OR device_id=?)",
+        (session_id, roll, device_id)
     )
 
     if cursor.fetchone():
         conn.close()
-        return "Attendance already submitted from this device or roll number.", 409
+        return "Attendance already recorded for this roll number or device.", 409
 
+    # Final Insertion with Device ID
     cursor.execute(
-        "INSERT INTO attendance (session_id, name, roll, ip) VALUES (?, ?, ?, ?)",
-        (session_id, name, roll, student_ip)
+        "INSERT INTO attendance (session_id, name, roll, ip, device_id) VALUES (?, ?, ?, ?, ?)",
+        (session_id, name, roll, student_ip, device_id)
     )
 
     conn.commit()
