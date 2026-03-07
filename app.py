@@ -24,10 +24,11 @@ DB_PATH = os.path.join(BASE_DIR, "database", "attendance.db")
 
 def init_db():
     """Ensures the local SQLite database directory and table are ready with Device ID migration."""
-    # Ensure the 'database' folder exists
+    # Ensure the 'database' folder exists automatically
     os.makedirs(os.path.join(BASE_DIR, "database"), exist_ok=True)
     
-    conn = sqlite3.connect(DB_PATH)
+    # FIX 3: Added check_same_thread=False for stability under concurrent student requests
+    conn = sqlite3.connect(DB_PATH, check_same_thread=False)
     cursor = conn.cursor()
     
     # Create the table if it doesn't exist
@@ -132,7 +133,7 @@ def refresh_qr(session_id):
 
     session = active_sessions[session_id]
 
-    # SESSION CLEANUP: Pop expired sessions from memory
+    # SESSION CLEANUP: Pop expired sessions from memory to save resources
     if time.time() - session["start_time"] > 300:
         active_sessions.pop(session_id, None)
         return jsonify({"error": "Session expired"}), 403
@@ -151,7 +152,8 @@ def refresh_qr(session_id):
 
 @app.route("/session_stats/<session_id>")
 def session_stats(session_id):
-    conn = sqlite3.connect(DB_PATH)
+    # FIX 3: Added check_same_thread=False
+    conn = sqlite3.connect(DB_PATH, check_same_thread=False)
     cursor = conn.cursor()
     cursor.execute("SELECT name, roll FROM attendance WHERE session_id=?", (session_id,))
     rows = cursor.fetchall()
@@ -164,18 +166,20 @@ def session_stats(session_id):
 
 @app.route("/download_report/<session_id>")
 def download_report(session_id):
-    # Step 1 Modified: Retrieve metadata from the active session
+    # Retrieve metadata from the active session dictionary
     session = active_sessions.get(session_id)
 
+    # FIX 2: Better error message for the Session Expiry edge case
     if not session:
-        return "Session not found", 404
+        return "Session expired but report can still be generated via the database admin.", 404
 
-    # Pass session-specific details to the generator
+    # The utility now receives all 5 required arguments (ID, Section, Subject, Dept, Email)
     file_path = generate_report(
         session_id,
         session["section"],
         session["subject"],
-        session["department"]
+        session["department"],
+        session["email"]
     )
 
     if not file_path:
@@ -202,11 +206,13 @@ def student():
 
 @app.route("/submit_attendance", methods=["POST"])
 def submit_attendance():
-    # Capture inputs and normalize
+    # Capture inputs and normalize (Upper case roll numbers, stripped names)
     name = request.form.get("name", "").strip()
     roll = request.form.get("roll", "").strip().upper()
     token = request.form.get("token")
-    device_id = request.form.get("device_id") # Captured from student.html
+    
+    # FIX 1: Robust device_id capture with .strip() and default empty string
+    device_id = request.form.get("device_id", "").strip()
 
     # Security Guard: Prevent crashes from missing tokens or empty fields
     if not token:
@@ -214,6 +220,10 @@ def submit_attendance():
 
     if not name or not roll:
         return "Name and Roll number are required.", 400
+    
+    # FIX 1 Guard: Block submission if device fingerprinting fails
+    if not device_id:
+        return "Device verification failed. Please refresh the page.", 400
 
     # Security Check 1: Verify the JWT Token
     decoded = verify_session_token(token)
@@ -222,7 +232,7 @@ def submit_attendance():
 
     session_id = decoded["session_id"]
     
-    # Robust IP detection for Students (Proxy-aware)
+    # Robust IP detection for Students (Proxy-aware for Render/Cloud)
     student_ip = request.headers.get("X-Forwarded-For", request.remote_addr)
     student_ip = student_ip.split(",")[0].strip()
 
@@ -237,10 +247,11 @@ def submit_attendance():
         return "You must be connected to the campus network to mark attendance.", 403
 
     # Step 6: Database Logging & Duplicate Prevention (Roll or Device ID)
-    conn = sqlite3.connect(DB_PATH)
+    # FIX 3: Added check_same_thread=False
+    conn = sqlite3.connect(DB_PATH, check_same_thread=False)
     cursor = conn.cursor()
 
-    # IMPROVED DUPLICATE CHECK: Block if same roll OR same device_id submits again
+    # IMPROVED DUPLICATE CHECK: Block if same roll OR same device_id submits again in this session
     cursor.execute(
         "SELECT id FROM attendance WHERE session_id=? AND (roll=? OR device_id=?)",
         (session_id, roll, device_id)
@@ -250,7 +261,7 @@ def submit_attendance():
         conn.close()
         return "Attendance already recorded for this roll number or device.", 409
 
-    # Final Insertion with Device ID
+    # Final Insertion with Device ID tracking
     cursor.execute(
         "INSERT INTO attendance (session_id, name, roll, ip, device_id) VALUES (?, ?, ?, ?, ?)",
         (session_id, name, roll, student_ip, device_id)
