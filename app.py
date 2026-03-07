@@ -10,7 +10,6 @@ from utils.qr_generator import generate_qr_code
 from utils.token_manager import generate_session_token, verify_session_token
 from utils.validator import is_ip_allowed
 from utils.report_generator import generate_report
-# Added for the new manual end session feature
 from utils.email_sender import send_email_with_report 
 
 app = Flask(__name__)
@@ -20,6 +19,7 @@ app = Flask(__name__)
 # -------------------------
 app.config["SECRET_KEY"] = "lpaf_super_secret_key"
 
+# Establish Absolute Paths
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(BASE_DIR, "database", "attendance.db")
 
@@ -27,6 +27,7 @@ def init_db():
     """Ensures the local SQLite database directory and table are ready with Device ID migration."""
     os.makedirs(os.path.join(BASE_DIR, "database"), exist_ok=True)
     
+    # Using check_same_thread=False for SQLite concurrency
     conn = sqlite3.connect(DB_PATH, check_same_thread=False)
     cursor = conn.cursor()
     
@@ -41,6 +42,7 @@ def init_db():
     )
     """)
 
+    # SCHEMA MIGRATION: Ensure device_id column exists
     cursor.execute("PRAGMA table_info(attendance)")
     columns = [col[1] for col in cursor.fetchall()]
 
@@ -50,6 +52,7 @@ def init_db():
     conn.commit()
     conn.close()
 
+# Initialize DB and session tracker
 init_db()
 active_sessions = {}
 
@@ -70,8 +73,12 @@ def professor():
         subject = request.form.get("subject", "").strip()
         section = request.form.get("section", "").strip()
         department = request.form.get("department", "").strip()
-        # Capture custom duration (default to 300s if not provided)
-        duration = int(request.form.get("duration", 300))
+        
+        # New: Capture Dynamic Duration (Default 300s)
+        try:
+            duration = int(request.form.get("duration", 300))
+        except (ValueError, TypeError):
+            duration = 300
 
         if not email or not subject or not section or not department:
             return "All fields must be filled before generating QR.", 400
@@ -97,7 +104,7 @@ def professor():
             "allowed_network": allowed_network,
             "token": token,
             "start_time": time.time(),
-            "duration": duration # Storing dynamic duration
+            "duration": duration # Added duration
         }
         active_sessions[session_id] = session_data
 
@@ -122,10 +129,18 @@ def refresh_qr(session_id):
 
     session = active_sessions[session_id]
 
-    # Updated Expiry Logic: Now compares against the user-defined duration
+    # New Expiry Logic: Auto-send report and end session
     if time.time() - session["start_time"] > session["duration"]:
+        report_path = generate_report(
+            session_id,
+            session["section"],
+            session["subject"],
+            session["department"],
+            session["email"]
+        )
+        send_email_with_report(session["email"], report_path)
         active_sessions.pop(session_id, None)
-        return jsonify({"error": "Session expired"}), 403
+        return jsonify({"expired": True})
 
     token = generate_session_token(session_id)
     session["token"] = token
@@ -141,11 +156,10 @@ def refresh_qr(session_id):
 @app.route("/end_session/<session_id>")
 def end_session(session_id):
     session = active_sessions.get(session_id)
-
     if not session:
         return jsonify({"error": "Session not found"}), 404
 
-    # Generate the final report
+    # Generate report
     report_path = generate_report(
         session_id,
         session["section"],
@@ -154,12 +168,11 @@ def end_session(session_id):
         session["email"]
     )
 
-    # Email the report to the professor
+    # Send email
     send_email_with_report(session["email"], report_path)
 
-    # Clear session from memory
+    # Remove session
     active_sessions.pop(session_id, None)
-
     return jsonify({"status": "Session ended and report emailed"})
 
 @app.route("/session_stats/<session_id>")
@@ -178,7 +191,6 @@ def session_stats(session_id):
 @app.route("/download_report/<session_id>")
 def download_report(session_id):
     session = active_sessions.get(session_id)
-
     if not session:
         return "Session expired but report can still be generated via database admin.", 404
 
