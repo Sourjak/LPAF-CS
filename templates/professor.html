@@ -1,216 +1,365 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LPAF | Professor Dashboard</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Share+Tech+Mono&family=Exo+2:wght@300;400;600&display=swap" rel="stylesheet">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LPAF | Professor Dashboard</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Share+Tech+Mono&family=Exo+2:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
 
-    <style>
-        :root { --cyan: #00D4FF; --blue: #1A6BFF; --dark: #060A14; --green: #00FF88; --red: #FF3B3B; }
-        body { font-family: 'Exo 2', sans-serif; background: #060A14; color: white; min-height: 100vh; overflow-x: hidden;
-            background-image: linear-gradient(rgba(0,212,255,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(0,212,255,0.05) 1px, transparent 1px);
-            background-size: 48px 48px; }
-        
-        /* Cyber-Dashboard Elements */
-        .orb { position: fixed; border-radius: 50%; filter: blur(110px); pointer-events: none; z-index: 0; opacity: 0.5; }
-        .card { background: rgba(0,212,255,0.03); border: 1px solid rgba(0,212,255,0.11); border-radius: 12px; backdrop-filter: blur(10px); position: relative; }
-        .slabel { font-family: 'Share Tech Mono', monospace; font-size: 0.6rem; color: var(--cyan); letter-spacing: 0.2em; text-transform: uppercase; }
-        .inp { background: rgba(0,212,255,0.05); border: 1px solid rgba(0,212,255,0.15); color: white; padding: 12px; border-radius: 8px; outline: none; }
-        .btn-p { background: var(--cyan); color: var(--dark); font-family: 'Orbitron', sans-serif; font-weight: 700; transition: 0.3s; }
-        .btn-p:hover { box-shadow: 0 0 20px var(--cyan); transform: translateY(-2px); }
-        .timer-num { font-family: 'Orbitron', sans-serif; font-size: 2.5rem; color: var(--red); text-shadow: 0 0 15px rgba(255,59,59,0.4); }
-        .scan-line { position: absolute; left: 10px; right: 10px; height: 2px; background: var(--cyan); box-shadow: 0 0 10px var(--cyan); animation: scan 3s ease-in-out infinite; }
-        @keyframes scan { 0%, 100% { top: 10%; opacity: 0; } 50% { top: 90%; opacity: 1; } }
-        .hidden { display: none !important; }
-    </style>
+<style>
+  :root {
+    --cyan: #00D4FF;
+    --blue: #1A6BFF;
+    --dark: #060A14;
+    --green: #00FF88;
+    --red: #FF3B3B;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Exo 2', sans-serif;
+    background: #060A14;
+    background-image:
+      linear-gradient(rgba(0,212,255,0.055) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,212,255,0.055) 1px, transparent 1px);
+    background-size: 48px 48px;
+    color: white;
+    overflow-x: hidden;
+    min-height: 100vh;
+  }
+
+  /* ── CURSOR ── */
+  #curDot {
+    width: 10px; height: 10px; background: var(--cyan); border-radius: 50%;
+    position: fixed; pointer-events: none; z-index: 9999;
+    opacity: 0; transform: translate(-50%,-50%);
+    mix-blend-mode: difference; transition: transform 0.1s;
+  }
+  #curRing {
+    width: 32px; height: 32px;
+    border: 1px solid rgba(0,212,255,0.55); border-radius: 50%;
+    position: fixed; pointer-events: none; z-index: 9998;
+    opacity: 0; transform: translate(-50%,-50%);
+    transition: border-color 0.2s, transform 0.15s;
+  }
+
+  /* ── ORBS ── */
+  .orb { position: fixed; border-radius: 50%; filter: blur(110px); pointer-events: none; z-index: 0; }
+  .orb-1 { width: 520px; height: 520px; background: radial-gradient(circle, rgba(0,80,255,0.17) 0%, transparent 70%); top: -100px; right: -60px; animation: o1 16s ease-in-out infinite alternate; }
+  .orb-2 { width: 420px; height: 420px; background: radial-gradient(circle, rgba(0,212,255,0.10) 0%, transparent 70%); top: 45%; left: -90px; animation: o2 20s ease-in-out infinite alternate; }
+  .orb-3 { width: 340px; height: 340px; background: radial-gradient(circle, rgba(90,0,200,0.09) 0%, transparent 70%); bottom: 8%; right: 8%; animation: o3 18s ease-in-out infinite alternate; }
+  @keyframes o1 { 0%{transform:translate(0,0)} 100%{transform:translate(-24px,20px)} }
+  @keyframes o2 { 0%{transform:translate(0,0)} 100%{transform:translate(28px,-24px)} }
+  @keyframes o3 { 0%{transform:translate(0,0)} 100%{transform:translate(-20px,18px)} }
+
+  #pcvs { position: fixed; inset: 0; pointer-events: none; z-index: 0; }
+  nav, main, footer { position: relative; z-index: 1; }
+
+  /* ── NAVBAR ── */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    background: rgba(6,10,20,0.88); backdrop-filter: blur(20px);
+    border-bottom: 1px solid rgba(0,212,255,0.08);
+  }
+  .logo-icon {
+    width: 30px; height: 30px; background: rgba(0,212,255,0.1);
+    border: 1px solid rgba(0,212,255,0.3); border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Orbitron', sans-serif; font-size: 0.42rem;
+    color: var(--cyan); font-weight: 700; letter-spacing: 0.04em;
+  }
+  .nav-a { font-family: 'Share Tech Mono', monospace; font-size: 0.75rem; color: rgba(255,255,255,0.38); letter-spacing: 0.1em; text-decoration: none; transition: color 0.3s; }
+  .nav-a:hover, .nav-a.on { color: var(--cyan); }
+  .badge { font-family: 'Share Tech Mono', monospace; font-size: 0.62rem; letter-spacing: 0.12em; background: rgba(0,255,136,0.07); border: 1px solid rgba(0,255,136,0.22); color: var(--green); padding: 3px 10px; border-radius: 2px; display: inline-flex; align-items: center; gap: 6px; }
+  .bdot { width: 5px; height: 5px; border-radius: 50%; background: var(--green); animation: pg 2s infinite; }
+  @keyframes pg { 0%,100%{opacity:1;box-shadow:0 0 5px var(--green)} 50%{opacity:0.35;box-shadow:none} }
+  .back-btn { background: linear-gradient(135deg, var(--blue), var(--cyan)); color: var(--dark); font-family: 'Orbitron', sans-serif; font-size: 0.62rem; font-weight: 700; letter-spacing: 0.1em; padding: 7px 16px; border-radius: 5px; border: none; text-decoration: none; display: inline-block; transition: all 0.3s; text-transform: uppercase; }
+  .back-btn:hover { box-shadow: 0 0 18px rgba(0,212,255,0.4); transform: translateY(-1px); }
+
+  #sp { position: fixed; top: 0; left: 0; height: 2px; background: linear-gradient(90deg, var(--blue), var(--cyan)); z-index: 200; width: 0%; }
+
+  /* ── CARDS ── */
+  .card {
+    background: rgba(0,212,255,0.03); border: 1px solid rgba(0,212,255,0.11);
+    border-radius: 10px; position: relative; overflow: hidden;
+    transition: border-color 0.3s, box-shadow 0.3s;
+  }
+  .card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px; background: linear-gradient(90deg, transparent, rgba(0,212,255,0.32), transparent); }
+  .card:hover { border-color: rgba(0,212,255,0.22); box-shadow: 0 6px 36px rgba(0,0,0,0.22); }
+
+  /* ── TYPOGRAPHY ── */
+  .slabel { font-family: 'Share Tech Mono', monospace; font-size: 0.58rem; letter-spacing: 0.2em; color: var(--cyan); text-transform: uppercase; opacity: 0.65; display: block; margin-bottom: 0.5rem; }
+  .flabel { font-family: 'Share Tech Mono', monospace; font-size: 0.58rem; letter-spacing: 0.14em; color: rgba(0,212,255,0.55); text-transform: uppercase; display: block; margin-bottom: 5px; }
+  .ptag { font-family: 'Share Tech Mono', monospace; font-size: 0.56rem; letter-spacing: 0.1em; background: rgba(0,212,255,0.05); border: 1px solid rgba(0,212,255,0.16); color: rgba(0,212,255,0.65); padding: 3px 8px; border-radius: 3px; }
+
+  /* ── INPUTS ── */
+  .inp { width: 100%; background: rgba(0,212,255,0.03); border: 1px solid rgba(0,212,255,0.11); border-radius: 6px; padding: 11px 14px; color: white; font-family: 'Exo 2', sans-serif; font-size: 0.85rem; outline: none; transition: border-color 0.3s, background 0.3s; }
+  .inp:focus { border-color: rgba(0,212,255,0.38); background: rgba(0,212,255,0.05); }
+  .inp::placeholder { color: rgba(255,255,255,0.18); }
+  select.inp { appearance: none; -webkit-appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='none' stroke='rgba(0,212,255,0.5)' stroke-width='2' viewBox='0 0 24 24'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; padding-right: 36px; cursor: pointer; }
+  select.inp option { background: #0B1120; color: white; }
+
+  /* ── BUTTONS ── */
+  .btn-p { background: var(--cyan); color: var(--dark); font-family: 'Orbitron', sans-serif; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.12em; padding: 13px 28px; border-radius: 6px; border: none; cursor: pointer; transition: all 0.3s; text-transform: uppercase; width: 100%; display: block; text-align: center; }
+  .btn-p:hover { background: white; box-shadow: 0 0 28px rgba(0,212,255,0.4); transform: translateY(-2px); }
+  .btn-red { background: rgba(255,59,59,0.08); border: 1px solid rgba(255,59,59,0.3); color: var(--red); font-family: 'Orbitron', sans-serif; font-size: 0.65rem; font-weight: 700; letter-spacing: 0.1em; padding: 9px 18px; border-radius: 6px; cursor: pointer; transition: all 0.3s; text-transform: uppercase; }
+  .btn-red:hover { background: rgba(255,59,59,0.15); border-color: rgba(255,59,59,0.55); box-shadow: 0 0 18px rgba(255,59,59,0.15); }
+  .btn-red:disabled { opacity: 0.35; cursor: not-allowed; }
+  .btn-dl { background: rgba(0,255,136,0.05); border: 1px solid rgba(0,255,136,0.2); color: var(--green); font-family: 'Orbitron', sans-serif; font-size: 0.68rem; font-weight: 600; letter-spacing: 0.1em; padding: 13px 32px; border-radius: 6px; transition: all 0.3s; text-decoration: none; display: inline-flex; align-items: center; gap: 9px; text-transform: uppercase; cursor: pointer; }
+  .btn-dl:hover { background: rgba(0,255,136,0.09); border-color: rgba(0,255,136,0.36); box-shadow: 0 0 18px rgba(0,255,136,0.08); }
+
+  /* ── TIMER ── */
+  .timer-num {
+    font-family: 'Orbitron', sans-serif; font-size: 3rem; font-weight: 900;
+    color: var(--red); text-shadow: 0 0 20px rgba(255,59,59,0.35); line-height: 1;
+  }
+  .timer-sep { font-family: 'Orbitron', sans-serif; font-size: 2.6rem; font-weight: 900; color: rgba(255,59,59,0.35); animation: bs 1s infinite; margin-bottom: 18px; }
+  @keyframes bs { 0%,100%{opacity:1} 50%{opacity:0.15} }
+  .timer-critical { animation: pulse-red 0.7s infinite !important; }
+  @keyframes pulse-red { 0%,100%{color:var(--red);text-shadow:0 0 20px rgba(255,59,59,0.6)} 50%{color:rgba(255,59,59,0.4);text-shadow:none} }
+
+  .scan-line { position: absolute; left: 18px; right: 18px; height: 2px; background: linear-gradient(90deg, transparent, var(--cyan), transparent); box-shadow: 0 0 10px rgba(0,212,255,0.6); animation: scan 2.5s ease-in-out infinite; pointer-events: none; z-index: 2; }
+  @keyframes scan { 0%{top:18px;opacity:0} 10%{opacity:1} 90%{opacity:1} 100%{top:calc(100% - 18px);opacity:0} }
+
+  /* Error Message */
+  #errorBox { font-family: 'Share Tech Mono', monospace; font-size: 0.6rem; color: var(--red); background: rgba(255,59,59,0.05); border: 1px solid rgba(255,59,59,0.2); padding: 8px; border-radius: 4px; text-align: center; margin-top: 10px; }
+
+  .hidden { display: none !important; }
+</style>
 </head>
 <body>
 
-<div class="orb w-[500px] h-[500px] bg-blue-900/20 -top-20 -right-20"></div>
-<div class="orb w-[400px] h-[400px] bg-cyan-900/10 top-1/2 -left-20"></div>
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
+<div class="orb orb-3"></div>
+<canvas id="pcvs"></canvas>
+<div id="curDot"></div>
+<div id="curRing"></div>
+<div id="sp"></div>
 
-<nav class="relative z-10 px-8 py-4 border-b border-white/5 bg-black/40 backdrop-blur-md">
-    <div class="max-w-6xl mx-auto flex justify-between items-center">
-        <div class="flex items-center gap-3">
-            <div class="w-10 h-10 bg-cyan-500/10 border border-cyan-500/30 rounded flex items-center justify-center font-bold text-cyan-400">LPAF</div>
-            <div>
-                <h2 class="text-sm font-bold tracking-widest font-['Orbitron']">PROFESSOR CONSOLE</h2>
-                <p class="text-[10px] text-cyan-500/50 font-['Share_Tech_Mono']">SECURE AUTHENTICATION</p>
-            </div>
-        </div>
-        <div class="flex items-center gap-4">
-            <span class="text-[10px] font-['Share_Tech_Mono'] text-green-400 border border-green-400/20 px-2 py-1 rounded bg-green-400/5">● SYSTEM ONLINE</span>
-        </div>
+<nav class="px-8 py-4">
+  <div class="max-w-6xl mx-auto flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <div class="logo-icon">LPAF</div>
+      <div>
+        <div style="font-family:'Orbitron',sans-serif;font-size:0.7rem;font-weight:700;letter-spacing:0.05em;">LPAF Control</div>
+        <div style="font-family:'Share Tech Mono',monospace;font-size:0.48rem;color:rgba(0,212,255,0.4);letter-spacing:0.1em;">SECURE ATTENDANCE SYSTEM</div>
+      </div>
     </div>
+    <div class="flex items-center gap-3">
+      <div class="badge"><span class="bdot"></span>SYSTEM ONLINE</div>
+      <a href="/" class="back-btn">← Landing</a>
+    </div>
+  </div>
 </nav>
 
-<main class="relative z-10 max-w-6xl mx-auto px-8 py-12">
+<main style="padding-top:6rem;padding-bottom:5rem;">
+  <div class="max-w-6xl mx-auto px-8">
 
-    {% if not qr_image %}
-    <div id="setupView" class="max-w-md mx-auto">
-        <div class="text-center mb-10">
-            <h1 class="text-3xl font-bold font-['Orbitron'] mb-2">New <span class="text-cyan-400">Session</span></h1>
-            <p class="text-sm text-gray-500 font-['Share_Tech_Mono']">CONFIGURE ATTENDANCE PARAMETERS</p>
-        </div>
+    <div id="setupView">
+      <div style="text-align:center;margin-bottom:2.5rem;">
+        <span class="slabel" style="justify-content:center;display:flex;margin-bottom:6px;">// PROFESSOR DASHBOARD</span>
+        <h1 style="font-family:'Orbitron',sans-serif;font-size:1.6rem;font-weight:700;line-height:1.2;">
+          New Attendance <span style="color:var(--cyan);">Session</span>
+        </h1>
+      </div>
 
-        <form method="POST" class="card p-8 flex flex-col gap-5">
-            <div class="flex flex-col gap-1">
-                <label class="slabel">Professor Email</label>
-                <input name="email" type="email" class="inp" placeholder="email@institution.edu" required>
+      <div style="max-width:26rem;margin:0 auto;">
+        <form id="sessionForm" method="POST" class="card" style="padding:2rem;">
+          <span class="slabel">// Start New Session</span>
+          <div style="display:flex;flex-direction:column;gap:0.9rem;margin-top:1rem;">
+            <div>
+              <label class="flabel">Professor Email</label>
+              <input id="in_email" name="email" type="email" class="inp" placeholder="professor@institution.edu">
             </div>
-            <div class="grid grid-cols-2 gap-4">
-                <div class="flex flex-col gap-1">
-                    <label class="slabel">Subject Code</label>
-                    <input name="subject" class="inp" placeholder="e.g. CS401" required>
-                </div>
-                <div class="flex flex-col gap-1">
-                    <label class="slabel">Section</label>
-                    <input name="section" class="inp" placeholder="e.g. A" required>
-                </div>
+            <div>
+              <label class="flabel">Subject Code (e.g., CS401)</label>
+              <input id="in_subject" name="subject" class="inp" placeholder="e.g. CS401">
             </div>
-            <div class="flex flex-col gap-1">
-                <label class="slabel">Session Duration</label>
-                <select name="duration" class="inp cursor-pointer">
-                    <option value="60">1 Minute (Quick Test)</option>
-                    <option value="300" selected>5 Minutes (Standard)</option>
-                    <option value="600">10 Minutes</option>
-                </select>
+            <div>
+              <label class="flabel">Section (e.g., A)</label>
+              <input id="in_section" name="section" class="inp" placeholder="e.g. A">
             </div>
-            <button type="submit" class="btn-p py-4 rounded-lg mt-4 text-sm tracking-widest uppercase">Launch Secure Session</button>
-        </form>
-    </div>
-    {% endif %}
-
-    {% if qr_image %}
-    <div id="sessionView" class="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        
-        <div class="lg:col-span-5 space-y-6">
-            <div class="card p-8 text-center flex flex-col items-center">
-                <label class="slabel mb-4">// DYNAMIC SECURE QR</label>
-                <div class="relative bg-white p-4 rounded-xl mb-6">
-                    <div class="scan-line"></div>
-                    <img id="qrImage" src="data:image/png;base64,{{qr_image}}" class="w-64 h-64">
-                </div>
-                <div class="w-full text-center">
-                    <p class="slabel text-[0.5rem] opacity-50 mb-2">Time Remaining</p>
-                    <div id="timer" class="timer-num">--:--</div>
-                    <div class="w-full bg-white/5 h-1 mt-4 rounded-full overflow-hidden">
-                        <div id="timerBar" class="h-full bg-red-500 transition-all duration-1000" style="width: 100%"></div>
-                    </div>
-                </div>
+            <div>
+              <label class="flabel">Department</label>
+              <input id="in_dept" name="department" class="inp" placeholder="e.g. CSE">
+            </div>
+            <div>
+              <label class="flabel">Set Expiry Timer</label>
+              <select id="in_duration" name="duration" class="inp">
+                <option value="60">1 Minute (Quick Test)</option>
+                <option value="180">3 Minutes</option>
+                <option value="300" selected>5 Minutes (Standard)</option>
+              </select>
             </div>
 
-            <button onclick="endSession(event)" class="w-full bg-red-500/10 border border-red-500/30 text-red-500 py-3 rounded-lg font-bold font-['Orbitron'] text-xs hover:bg-red-500 hover:text-white transition-all uppercase tracking-widest">
-                Terminate Session
+            <div id="errorBox" class="hidden">All fields must be filled before generating QR.</div>
+
+            <button type="button" onclick="validateAndSubmit()" class="btn-p" style="margin-top:0.25rem;letter-spacing:0.15em;">
+              Generate Secure QR
             </button>
-        </div>
-
-        <div class="lg:col-span-7 space-y-6">
-            <div class="grid grid-cols-2 gap-4">
-                <div class="card p-6">
-                    <label class="slabel">Students Present</label>
-                    <div id="submissionCount" class="text-4xl font-bold text-cyan-400 mt-2">0</div>
-                </div>
-                <div class="card p-6">
-                    <label class="slabel">Session Status</label>
-                    <div class="text-sm font-bold text-green-400 mt-3 flex items-center gap-2">
-                        <span class="relative flex h-3 w-3"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span><span class="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span></span>
-                        ACTIVE
-                    </div>
-                </div>
-            </div>
-
-            <div class="card p-6 flex-1 h-[300px] flex flex-col">
-                <div class="flex justify-between items-center mb-4">
-                    <label class="slabel">// LIVE ACTIVITY LOG</label>
-                    <a href="/download_report/{{session_id}}" class="text-[10px] text-cyan-400 underline uppercase">Export CSV</a>
-                </div>
-                <ul id="recentList" class="space-y-2 overflow-y-auto pr-2 font-['Share_Tech_Mono'] text-sm">
-                    <li class="text-white/20 text-center py-10">Waiting for connections...</li>
-                </ul>
-            </div>
-        </div>
+          </div>
+        </form>
+      </div>
     </div>
-    {% endif %}
 
+    <div id="sessionView" class="hidden">
+      <div style="text-align:center;margin-bottom:2rem;">
+        <span class="slabel" style="justify-content:center;display:flex;margin-bottom:6px;">// PROFESSOR DASHBOARD</span>
+        <h1 style="font-family:'Orbitron',sans-serif;font-size:1.6rem;font-weight:700;line-height:1.2;">
+          Secure Session <span style="color:var(--cyan);">Active</span>
+        </h1>
+        <p id="sessionMeta" style="font-family:'Share Tech Mono',monospace;font-size:0.62rem;color:rgba(255,255,255,0.28);letter-spacing:0.08em;margin-top:6px;">—</p>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:1.5rem;max-width:56rem;margin-left:auto;margin-right:auto;">
+        <div class="card" style="padding:1.25rem;">
+          <span class="slabel">Live Submissions</span>
+          <div class="sval" id="subCount">0</div>
+        </div>
+        <div class="card" style="padding:1.25rem;">
+          <span class="slabel">Token Health</span>
+          <div style="font-family:'Orbitron',sans-serif;font-size:1.05rem;font-weight:700;color:var(--cyan);margin-top:4px;">STRONG</div>
+          <div class="hbw"><div class="hb" style="width:94%;"></div></div>
+        </div>
+        <div class="card" style="padding:1.25rem;">
+          <span class="slabel">Session Uptime</span>
+          <div class="sval" id="uptimeEl" style="font-size:1.4rem;">00:00</div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;max-width:56rem;margin:0 auto 2rem auto;">
+        <div class="card" style="padding:1.5rem;display:flex;flex-direction:column;align-items:center;text-align:center;">
+          <span class="slabel">// QR Code</span>
+          <div style="background:rgba(6,12,24,0.95);border:1px solid rgba(0,212,255,0.14);border-radius:10px;padding:18px;position:relative;display:inline-block;margin:1rem 0;">
+            <div class="scan-line"></div>
+            <img id="qrImg" src="" alt="QR" style="width:180px;height:180px;background:white;padding:6px;border-radius:6px;display:block;">
+          </div>
+          <div style="display:flex;align-items:flex-end;justify-content:center;gap:4px;">
+            <div><div class="timer-num" id="timerMins">00</div></div>
+            <div class="timer-sep">:</div>
+            <div><div class="timer-num" id="timerSecs">00</div></div>
+          </div>
+          <div class="hbw" style="margin-top:12px;height:3px;">
+            <div id="timerBar" class="hb" style="background:linear-gradient(90deg,var(--red),rgba(255,59,59,0.4));width:100%;"></div>
+          </div>
+        </div>
+
+        <div class="card" style="padding:1.5rem;display:flex;flex-direction:column;gap:0;">
+          <div style="display:flex;flex-direction:column;gap:0.75rem;flex:1;">
+            <div id="dispSessionId" class="hidden"></div>
+            <div class="sbox"><span class="slabel">Subject</span><div id="dispSubject" style="font-family:'Orbitron',sans-serif;font-size:0.9rem;font-weight:700;">—</div></div>
+            <div class="sbox"><span class="slabel">Department</span><div id="dispDept" style="font-family:'Orbitron',sans-serif;font-size:0.9rem;font-weight:700;">—</div></div>
+          </div>
+          <ul id="recentList" class="act-scroll" style="list-style:none;max-height:100px;overflow-y:auto;margin-top:10px;"></ul>
+          <button id="endBtn" onclick="endSession(event)" class="btn-red" style="width:100%;margin-top:1rem;">End Session Early</button>
+        </div>
+      </div>
+
+      <div style="text-align:center;"><a id="downloadBtn" href="#" class="btn-dl">Download Report</a></div>
+    </div>
+  </div>
 </main>
 
 <script>
-    // Flask Data Bridge
-    const sessionId = "{{session_id}}";
-    const sessionStart = {{start_time or 0}};
-    const duration = {{duration or 300}};
+// Data from Flask
+const FLASK = {
+  qr_image: "{{ qr_image | default('') }}",
+  session_id: "{{ session_id | default('') }}",
+  subject: "{{ subject | default('') }}",
+  section: "{{ section | default('') }}",
+  department: "{{ department | default('') }}",
+  start_time: {{ start_time | default(0) }},
+  duration: {{ duration | default(300) }}
+};
 
-    if (sessionId) {
-        // 1. Timer Logic
-        function updateTimer() {
-            const remaining = Math.max(0, duration - (Date.now() / 1000 - sessionStart));
-            const m = Math.floor(remaining / 60);
-            const s = Math.floor(remaining % 60);
-            const timerEl = document.getElementById("timer");
-            const bar = document.getElementById("timerBar");
+// BUG FIX: Form Validation
+function validateAndSubmit() {
+  const email = document.getElementById('in_email').value.trim();
+  const subject = document.getElementById('in_subject').value.trim();
+  const section = document.getElementById('in_section').value.trim();
+  const dept = document.getElementById('in_dept').value.trim();
+  const error = document.getElementById('errorBox');
 
-            if (timerEl) {
-                timerEl.innerText = `${m}:${s < 10 ? '0' : ''}${s}`;
-                bar.style.width = (remaining / duration * 100) + "%";
-                if (remaining < 30) timerEl.classList.add("animate-pulse");
-            }
+  if(!email || !subject || !section || !dept) {
+    error.classList.remove('hidden');
+    gsap.fromTo("#errorBox", {x:-4}, {x:4, duration:0.05, repeat:5, yoyo:true});
+    return;
+  }
+  error.classList.add('hidden');
+  document.getElementById('sessionForm').submit();
+}
 
-            if (remaining <= 0) {
-                fetch(`/end_session/${sessionId}`).then(() => location.reload());
-            }
-        }
+// Session Initialization
+const hasSession = FLASK.qr_image && FLASK.qr_image !== '' && !FLASK.qr_image.includes('{{');
+if (hasSession) {
+  document.getElementById('setupView').classList.add('hidden');
+  document.getElementById('sessionView').classList.remove('hidden');
+  document.getElementById('dispSubject').textContent = FLASK.subject + " - " + FLASK.section;
+  document.getElementById('dispDept').textContent = FLASK.department;
+  document.getElementById('qrImg').src = 'data:image/png;base64,' + FLASK.qr_image;
+  document.getElementById('downloadBtn').href = '/download_report/' + FLASK.session_id;
+  startSessionLoops();
+}
 
-        // 2. Stats & Logs Logic
-        function updateStats() {
-            fetch(`/session_stats/${sessionId}`)
-                .then(res => res.json())
-                .then(data => {
-                    document.getElementById("submissionCount").innerText = data.count;
-                    const list = document.getElementById("recentList");
-                    if (data.recent.length > 0) {
-                        list.innerHTML = data.recent.map(item => `
-                            <li class="bg-white/5 p-2 rounded border-l-2 border-cyan-500 flex justify-between">
-                                <span>${item[0]}</span>
-                                <span class="text-white/30 text-[10px]">${item[1]}</span>
-                            </li>
-                        `).join('');
-                    }
-                });
-        }
+function startSessionLoops() {
+  let up = FLASK.start_time ? Math.floor(Date.now()/1000) - FLASK.start_time : 0;
+  setInterval(() => {
+    up++;
+    const el = document.getElementById('uptimeEl');
+    if(el) el.textContent = String(Math.floor(up/60)).padStart(2,'0') + ':' + String(up%60).padStart(2,'0');
+  }, 1000);
 
-        // 3. QR Rotation
-        function refreshQR() {
-            fetch(`/refresh_qr/${sessionId}`)
-                .then(res => res.json())
-                .then(data => {
-                    if (data.qr) document.getElementById("qrImage").src = "data:image/png;base64," + data.qr;
-                });
-        }
+  function updateTimer() {
+    const rem = Math.max(0, FLASK.duration - (Date.now()/1000 - FLASK.start_time));
+    document.getElementById('timerMins').textContent = String(Math.floor(rem/60)).padStart(2,'0');
+    document.getElementById('timerSecs').textContent = String(Math.floor(rem%60)).padStart(2,'0');
+    document.getElementById('timerBar').style.width = (rem/FLASK.duration*100) + '%';
+    if(rem <= 0) location.reload();
+  }
+  setInterval(updateTimer, 1000);
 
-        // Intervals
-        setInterval(updateTimer, 1000);
-        setInterval(updateStats, 3000);
-        setInterval(refreshQR, 90000);
-        updateTimer();
-        updateStats();
-    }
+  function getStats() {
+    fetch('/session_stats/' + FLASK.session_id).then(r => r.json()).then(d => {
+      document.getElementById('subCount').textContent = d.count;
+      const list = document.getElementById('recentList');
+      list.innerHTML = d.recent.map(i => `<li class="act-item"><span>${i[0]}</span><span>${i[1]}</span></li>`).join('');
+    });
+  }
+  setInterval(getStats, 3000);
+}
 
-    function endSession(event) {
-        if(confirm("Generate final report and close session?")) {
-            event.target.innerText = "Closing...";
-            fetch(`/end_session/${sessionId}`).then(() => location.reload());
-        }
-    }
+function endSession(e) {
+  if(!confirm('End session?')) return;
+  fetch('/end_session/' + FLASK.session_id).then(() => location.reload());
+}
 
-    // GSAP Entrances
-    window.onload = () => {
-        gsap.from(".card", { opacity: 0, y: 30, duration: 0.8, stagger: 0.2, ease: "power4.out" });
-    };
+// Background Visuals (Particles/Cursor)
+const cvs=document.getElementById('pcvs'), ctx=cvs.getContext('2d');
+function rsz(){ cvs.width=window.innerWidth; cvs.height=window.innerHeight; }
+rsz(); window.onresize=rsz;
+const pts=Array.from({length:50},()=>({x:Math.random()*window.innerWidth, y:Math.random()*window.innerHeight, vx:(Math.random()-.5)*.3, vy:(Math.random()-.5)*.3}));
+(function draw(){
+  ctx.clearRect(0,0,cvs.width,cvs.height);
+  pts.forEach(p=>{
+    p.x+=p.vx; p.y+=p.vy;
+    if(p.x<0||p.x>cvs.width) p.vx*=-1; if(p.y<0||p.y>cvs.height) p.vy*=-1;
+    ctx.fillStyle='rgba(0,212,255,0.2)'; ctx.beginPath(); ctx.arc(p.x,p.y,1,0,Math.PI*2); ctx.fill();
+  });
+  requestAnimationFrame(draw);
+})();
+
+const curDot=document.getElementById('curDot'), curRing=document.getElementById('curRing');
+let mx=0, my=0;
+window.onmousemove=e=>{ mx=e.clientX; my=e.clientY; curDot.style.left=mx+'px'; curDot.style.top=my+'px'; curDot.style.opacity=1; curRing.style.opacity=1; };
+(function loop(){
+  let rx=parseFloat(curRing.style.left||0), ry=parseFloat(curRing.style.top||0);
+  curRing.style.left = rx+(mx-rx)*0.1+'px'; curRing.style.top = ry+(my-ry)*0.1+'px';
+  requestAnimationFrame(loop);
+})();
 </script>
-
 </body>
 </html>
