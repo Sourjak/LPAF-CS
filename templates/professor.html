@@ -5,237 +5,252 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>LPAF | Professor Dashboard</title>
 <script src="https://cdn.tailwindcss.com"></script>
-<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Share+Tech+Mono&family=Rajdhani:wght@300;400;500;600;700&family=Exo+2:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Share+Tech+Mono&family=Rajdhani:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
-
 <style>
-  :root {
-    --cyan: #00D4FF;
-    --blue: #1A6BFF;
-    --dark: #060A14;
-    --green: #00FF88;
-    --red: #FF3B3B;
-  }
+:root {
+  --cyan: #00D4FF;
+  --blue: #1A6BFF;
+  --dark: #060A14;
+  --green: #00FF88;
+  --red: #FF3B3B;
+}
 
-  * { margin: 0; padding: 0; box-sizing: border-box; }
+* { margin:0; padding:0; box-sizing:border-box; }
 
-  body {
-    font-family: 'Rajdhani', sans-serif;
-    background: #060A14;
-    color: white;
-    overflow-x: hidden;
-    min-height: 100vh;
-  }
+body {
+  font-family:'Rajdhani',sans-serif;
+  background:#060A14;
+  color:white;
+  overflow-x:hidden;
+  min-height:100vh;
+  cursor:none;
+}
 
-  /* GRID BG */
-  body::before {
-    content: '';
-    position: fixed; inset: 0;
-    background-image:
-      linear-gradient(rgba(0,212,255,0.04) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(0,212,255,0.04) 1px, transparent 1px);
-    background-size: 52px 52px;
-    pointer-events: none; z-index: 0;
-  }
+/* ── Cursor (Smooth GPU Version) ── */
+const cursor = document.getElementById("cursor");
+const cursorRing = document.getElementById("cursorRing");
 
-  /* CURSOR */
-  body { cursor: none; }
-  .cursor {
-    width: 12px; height: 12px;
-    background: #00D4FF; border-radius: 50%;
-    position: fixed; top: 0; left: 0;
-    pointer-events: none; z-index: 9999;
-    transition: transform 0.12s ease, opacity 0.12s ease;
-    mix-blend-mode: difference;
-  }
-  .cursor-ring {
-    width: 36px; height: 36px;
-    border: 1px solid rgba(0,212,255,0.5); border-radius: 50%;
-    position: fixed; top: 0; left: 0;
-    pointer-events: none; z-index: 9998;
-    transition: all 0.15s ease, opacity 0.15s ease;
-  }
+let mouseX = 0, mouseY = 0;
+let posX = 0, posY = 0;
+let ringX = 0, ringY = 0;
 
-  /* ORBS */
-  .orb { position: fixed; border-radius: 50%; filter: blur(100px); pointer-events: none; z-index: 0; }
-  .orb-1 { width: 600px; height: 600px; background: radial-gradient(circle,rgba(0,80,255,0.14) 0%,transparent 70%); top:-150px;right:-100px; animation:o1 18s ease-in-out infinite alternate; }
-  .orb-2 { width: 450px; height: 450px; background: radial-gradient(circle,rgba(0,212,255,0.08) 0%,transparent 70%); top:40%;left:-120px; animation:o2 22s ease-in-out infinite alternate; }
-  .orb-3 { width: 380px; height: 380px; background: radial-gradient(circle,rgba(139,92,246,0.07) 0%,transparent 70%); bottom:5%;right:10%; animation:o3 20s ease-in-out infinite alternate; }
-  @keyframes o1 { 0%{transform:translate(0,0)} 100%{transform:translate(-30px,25px)} }
-  @keyframes o2 { 0%{transform:translate(0,0)} 100%{transform:translate(32px,-28px)} }
-  @keyframes o3 { 0%{transform:translate(0,0)} 100%{transform:translate(-22px,20px)} }
+document.addEventListener("mousemove", (e) => {
+  mouseX = e.clientX;
+  mouseY = e.clientY;
+});
 
-  #pcvs { position:fixed;inset:0;pointer-events:none;z-index:0; }
-  nav, main { position:relative;z-index:1; }
+function animateCursor() {
 
-  #sp { position:fixed;top:0;left:0;height:2px;background:linear-gradient(90deg,var(--blue),var(--cyan),var(--green));z-index:200;width:0%; }
+  /* Main Cursor (fast follow) */
+  posX += (mouseX - posX) * 0.35;
+  posY += (mouseY - posY) * 0.35;
 
-  /* NAVBAR */
-  nav {
-    position:fixed;top:0;left:0;right:0;z-index:100;
-    background:rgba(6,10,20,0.85);backdrop-filter:blur(24px);
-    border-bottom:1px solid rgba(0,212,255,0.08);
-  }
-  .logo-icon {
-    width:34px;height:34px;
-    background:linear-gradient(135deg,rgba(0,212,255,0.15),rgba(26,107,255,0.15));
-    border:1px solid rgba(0,212,255,0.3);border-radius:8px;
-    display:flex;align-items:center;justify-content:center;
-    font-family:'Orbitron',sans-serif;font-size:0.42rem;color:var(--cyan);font-weight:700;letter-spacing:0.04em;
-    box-shadow:0 0 16px rgba(0,212,255,0.1),inset 0 1px 0 rgba(0,212,255,0.2);
-  }
-  .badge {
-    font-family:'Share Tech Mono',monospace;font-size:0.6rem;letter-spacing:0.12em;
-    background:rgba(0,255,136,0.06);border:1px solid rgba(0,255,136,0.2);color:var(--green);
-    padding:4px 12px;border-radius:3px;display:inline-flex;align-items:center;gap:6px;
-  }
-  .bdot { width:5px;height:5px;border-radius:50%;background:var(--green);animation:pg 2s infinite; }
-  @keyframes pg { 0%,100%{opacity:1;box-shadow:0 0 6px var(--green)} 50%{opacity:0.3;box-shadow:none} }
-  .back-btn {
-    background:linear-gradient(135deg,var(--blue),var(--cyan));color:var(--dark);
-    font-family:'Orbitron',sans-serif;font-size:0.6rem;font-weight:700;letter-spacing:0.1em;
-    padding:8px 18px;border-radius:6px;border:none;text-decoration:none;display:inline-block;
-    transition:all 0.3s;text-transform:uppercase;box-shadow:0 0 20px rgba(0,212,255,0.15);
-  }
-  .back-btn:hover { box-shadow:0 0 28px rgba(0,212,255,0.45);transform:translateY(-1px); }
+  cursor.style.transform =
+    `translate3d(${posX - 6}px, ${posY - 6}px, 0)`;
 
-  /* CARDS */
-  .card {
-    background:rgba(0,212,255,0.025);border:1px solid rgba(0,212,255,0.1);
-    border-radius:12px;position:relative;overflow:hidden;
-    transition:border-color 0.3s,box-shadow 0.3s;backdrop-filter:blur(10px);
-  }
-  .card::before { content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(0,212,255,0.35),transparent); }
-  .card:hover { border-color:rgba(0,212,255,0.2);box-shadow:0 8px 40px rgba(0,0,0,0.25); }
+  /* Ring Cursor (slow follow) */
+  ringX += (mouseX - ringX) * 0.12;
+  ringY += (mouseY - ringY) * 0.12;
 
-  /* BRACKET CORNERS */
-  .bracket::before,.bracket::after { content:'';position:absolute;width:16px;height:16px;border-color:rgba(0,212,255,0.4);border-style:solid; }
-  .bracket::before { top:-1px;left:-1px;border-width:2px 0 0 2px;border-radius:2px 0 0 0; }
-  .bracket::after  { bottom:-1px;right:-1px;border-width:0 2px 2px 0;border-radius:0 0 2px 0; }
-  .bracket .br-tr,.bracket .br-bl { position:absolute;width:16px;height:16px;border-color:rgba(0,212,255,0.4);border-style:solid; }
-  .bracket .br-tr { top:-1px;right:-1px;border-width:2px 2px 0 0;border-radius:0 2px 0 0; }
-  .bracket .br-bl { bottom:-1px;left:-1px;border-width:0 0 2px 2px;border-radius:0 0 0 2px; }
+  cursorRing.style.transform =
+    `translate3d(${ringX - 18}px, ${ringY - 18}px, 0)`;
 
-  /* TYPOGRAPHY */
-  .slabel { font-family:'Share Tech Mono',monospace;font-size:0.58rem;letter-spacing:0.2em;color:var(--cyan);text-transform:uppercase;opacity:0.6;display:block;margin-bottom:0.5rem; }
-  .flabel { font-family:'Share Tech Mono',monospace;font-size:0.6rem;letter-spacing:0.14em;color:rgba(0,212,255,0.6);text-transform:uppercase;display:block;margin-bottom:6px; }
+  requestAnimationFrame(animateCursor);
+}
 
-  /* STAT VALUE */
-  .sval { font-family:'Orbitron',sans-serif;font-size:1.6rem;font-weight:700;color:var(--cyan);text-shadow:0 0 20px rgba(0,212,255,0.3);margin-top:4px;line-height:1; }
+animateCursor();
 
-  /* HEALTH BAR */
-  .hbw { width:100%;background:rgba(255,255,255,0.04);border-radius:2px;height:2px;margin-top:8px;overflow:hidden; }
-  .hb  { height:100%;border-radius:2px;background:linear-gradient(90deg,var(--cyan),rgba(0,212,255,0.3));transition:width 0.5s; }
+/* Hover Effects */
+document.querySelectorAll("a, button, input, select").forEach(el => {
 
-  /* INPUTS */
-  .inp {
-    width:100%;background:rgba(0,212,255,0.03);border:1px solid rgba(0,212,255,0.12);border-radius:8px;
-    padding:12px 16px;color:white;font-family:'Rajdhani',sans-serif;font-size:1rem;font-weight:500;
-    outline:none;transition:border-color 0.3s,background 0.3s,box-shadow 0.3s;letter-spacing:0.03em;
-  }
-  .inp:focus { border-color:rgba(0,212,255,0.4);background:rgba(0,212,255,0.06);box-shadow:0 0 0 3px rgba(0,212,255,0.06); }
-  .inp::placeholder { color:rgba(255,255,255,0.15);font-weight:400; }
-  select.inp { appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='none' stroke='rgba(0,212,255,0.5)' stroke-width='2' viewBox='0 0 24 24'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;padding-right:38px; }
-  select.inp option { background:#0B1120;color:white; }
+  el.addEventListener("mouseenter", () => {
+    cursor.style.transform += " scale(2.2)";
+    cursorRing.style.transform += " scale(1.5)";
+    cursorRing.style.borderColor = "rgba(0,212,255,0.9)";
+  });
 
-  /* BUTTONS */
-  .btn-p {
-    background:linear-gradient(135deg,var(--blue),var(--cyan));color:var(--dark);
-    font-family:'Orbitron',sans-serif;font-size:0.72rem;font-weight:700;letter-spacing:0.15em;
-    padding:14px 28px;border-radius:8px;border:none;cursor:pointer;transition:all 0.3s;
-    text-transform:uppercase;width:100%;display:block;text-align:center;
-    box-shadow:0 4px 24px rgba(0,212,255,0.2);position:relative;overflow:hidden;
-  }
-  .btn-p::before { content:'';position:absolute;top:0;left:-100%;width:100%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.15),transparent);transition:left 0.4s; }
-  .btn-p:hover::before { left:100%; }
-  .btn-p:hover { box-shadow:0 6px 32px rgba(0,212,255,0.4);transform:translateY(-2px); }
+  el.addEventListener("mouseleave", () => {
+    cursorRing.style.borderColor = "rgba(0,212,255,0.5)";
+  });
 
-  .btn-red {
-    background:rgba(255,59,59,0.07);border:1px solid rgba(255,59,59,0.28);color:var(--red);
-    font-family:'Orbitron',sans-serif;font-size:0.62rem;font-weight:700;letter-spacing:0.1em;
-    padding:11px 20px;border-radius:8px;cursor:pointer;transition:all 0.3s;text-transform:uppercase;
-  }
-  .btn-red:hover { background:rgba(255,59,59,0.14);border-color:rgba(255,59,59,0.5);box-shadow:0 0 20px rgba(255,59,59,0.12); }
+});
+/* GRID BG */
+body::before {
+  content:''; position:fixed; inset:0;
+  background-image:
+    linear-gradient(rgba(0,212,255,0.04) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(0,212,255,0.04) 1px,transparent 1px);
+  background-size:52px 52px;
+  pointer-events:none; z-index:0;
+}
 
-  .btn-dl {
-    background:rgba(0,255,136,0.05);border:1px solid rgba(0,255,136,0.2);color:var(--green);
-    font-family:'Orbitron',sans-serif;font-size:0.68rem;font-weight:600;letter-spacing:0.1em;
-    padding:14px 36px;border-radius:8px;transition:all 0.3s;text-decoration:none;
-    display:inline-flex;align-items:center;gap:10px;text-transform:uppercase;
-  }
-  .btn-dl:hover { background:rgba(0,255,136,0.09);border-color:rgba(0,255,136,0.38);box-shadow:0 0 24px rgba(0,255,136,0.1);transform:translateY(-1px); }
+/* ORBS */
+.orb { position:fixed; border-radius:50%; filter:blur(100px); pointer-events:none; z-index:0; }
+.orb-1 { width:600px;height:600px;background:radial-gradient(circle,rgba(0,80,255,0.14) 0%,transparent 70%);top:-150px;right:-100px;animation:o1 18s ease-in-out infinite alternate; }
+.orb-2 { width:450px;height:450px;background:radial-gradient(circle,rgba(0,212,255,0.08) 0%,transparent 70%);top:40%;left:-120px;animation:o2 22s ease-in-out infinite alternate; }
+.orb-3 { width:380px;height:380px;background:radial-gradient(circle,rgba(139,92,246,0.07) 0%,transparent 70%);bottom:5%;right:10%;animation:o3 20s ease-in-out infinite alternate; }
+@keyframes o1 { 0%{transform:translate(0,0)} 100%{transform:translate(-30px,25px)} }
+@keyframes o2 { 0%{transform:translate(0,0)} 100%{transform:translate(32px,-28px)} }
+@keyframes o3 { 0%{transform:translate(0,0)} 100%{transform:translate(-22px,20px)} }
 
-  /* TIMER */
-  .timer-num { font-family:'Orbitron',sans-serif;font-size:3.2rem;font-weight:900;color:var(--red);text-shadow:0 0 24px rgba(255,59,59,0.4);line-height:1;letter-spacing:0.05em; }
-  .timer-sep { font-family:'Orbitron',sans-serif;font-size:2.8rem;font-weight:900;color:rgba(255,59,59,0.3);animation:bs 1s infinite;align-self:flex-end;margin-bottom:2px; }
-  @keyframes bs { 0%,100%{opacity:1} 50%{opacity:0.12} }
+#pcvs { position:fixed;inset:0;pointer-events:none;z-index:0; }
+nav, main { position:relative;z-index:1; }
+#sp { position:fixed;top:0;left:0;height:2px;background:linear-gradient(90deg,var(--blue),var(--cyan),var(--green));z-index:200;width:0%; }
 
-  /* SCAN LINE */
-  .scan-line { position:absolute;left:12px;right:12px;height:2px;background:linear-gradient(90deg,transparent,var(--cyan),transparent);box-shadow:0 0 12px rgba(0,212,255,0.7);animation:scan 2.5s ease-in-out infinite;pointer-events:none;z-index:2; }
-  @keyframes scan { 0%{top:12px;opacity:0} 10%{opacity:1} 90%{opacity:1} 100%{top:calc(100% - 12px);opacity:0} }
+/* NAVBAR */
+nav {
+  position:fixed;top:0;left:0;right:0;z-index:100;
+  background:rgba(6,10,20,0.85);backdrop-filter:blur(24px);
+  border-bottom:1px solid rgba(0,212,255,0.08);
+}
+.logo-icon {
+  width:34px;height:34px;
+  background:linear-gradient(135deg,rgba(0,212,255,0.15),rgba(26,107,255,0.15));
+  border:1px solid rgba(0,212,255,0.3);border-radius:8px;
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Orbitron',sans-serif;font-size:0.42rem;color:var(--cyan);font-weight:700;
+  box-shadow:0 0 16px rgba(0,212,255,0.1),inset 0 1px 0 rgba(0,212,255,0.2);
+}
+.badge {
+  font-family:'Share Tech Mono',monospace;font-size:0.6rem;letter-spacing:0.12em;
+  background:rgba(0,255,136,0.06);border:1px solid rgba(0,255,136,0.2);color:var(--green);
+  padding:4px 12px;border-radius:3px;display:inline-flex;align-items:center;gap:6px;
+}
+.bdot { width:5px;height:5px;border-radius:50%;background:var(--green);animation:pg 2s infinite; }
+@keyframes pg { 0%,100%{opacity:1;box-shadow:0 0 6px var(--green)} 50%{opacity:0.3;box-shadow:none} }
+.back-btn {
+  background:linear-gradient(135deg,var(--blue),var(--cyan));color:var(--dark);
+  font-family:'Orbitron',sans-serif;font-size:0.6rem;font-weight:700;letter-spacing:0.1em;
+  padding:8px 18px;border-radius:6px;border:none;text-decoration:none;display:inline-block;
+  transition:all 0.3s;text-transform:uppercase;box-shadow:0 0 20px rgba(0,212,255,0.15);
+}
+.back-btn:hover { box-shadow:0 0 28px rgba(0,212,255,0.45);transform:translateY(-1px); }
 
-  /* QR WRAP */
-  .qr-wrap { position:relative;display:inline-block;background:rgba(6,12,24,0.97);border:1px solid rgba(0,212,255,0.16);border-radius:12px;padding:20px; }
-  .qr-wrap::before,.qr-wrap::after { content:'';position:absolute;width:22px;height:22px;border-color:var(--cyan);border-style:solid; }
-  .qr-wrap::before { top:-1px;left:-1px;border-width:2px 0 0 2px;border-radius:3px 0 0 0; }
-  .qr-wrap::after  { bottom:-1px;right:-1px;border-width:0 2px 2px 0;border-radius:0 0 3px 0; }
-  .qr-corner-tr,.qr-corner-bl { position:absolute;width:22px;height:22px;border-color:var(--cyan);border-style:solid; }
-  .qr-corner-tr { top:-1px;right:-1px;border-width:2px 2px 0 0;border-radius:0 3px 0 0; }
-  .qr-corner-bl { bottom:-1px;left:-1px;border-width:0 0 2px 2px;border-radius:0 0 0 3px; }
+/* CARDS */
+.card {
+  background:rgba(0,212,255,0.025);border:1px solid rgba(0,212,255,0.1);
+  border-radius:12px;position:relative;overflow:hidden;
+  transition:border-color 0.3s,box-shadow 0.3s;backdrop-filter:blur(10px);
+}
+.card::before { content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(0,212,255,0.35),transparent); }
+.card:hover { border-color:rgba(0,212,255,0.2);box-shadow:0 8px 40px rgba(0,0,0,0.25); }
 
-  /* LIVE FEED */
-  .feed-item {
-    display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:8px;
-    background:rgba(0,255,136,0.03);border:1px solid rgba(0,255,136,0.08);
-    animation:feedIn 0.4s ease-out;font-family:'Share Tech Mono',monospace;margin-bottom:8px;
-    transition:background 0.3s;
-  }
-  .feed-item:hover { background:rgba(0,255,136,0.06); }
-  @keyframes feedIn { from{opacity:0;transform:translateX(12px)} to{opacity:1;transform:translateX(0)} }
-  .feed-dot { width:6px;height:6px;border-radius:50%;background:var(--green);flex-shrink:0;box-shadow:0 0 8px var(--green);animation:fdot 2s infinite; }
-  @keyframes fdot { 0%,100%{opacity:1} 50%{opacity:0.4} }
-  .feed-name { color:rgba(255,255,255,0.85);font-size:0.72rem;letter-spacing:0.08em;flex:1; }
-  .feed-time { color:rgba(0,212,255,0.45);font-size:0.6rem;letter-spacing:0.1em; }
-  .feed-scroll { max-height:320px;overflow-y:auto;padding-right:2px; }
-  .feed-scroll::-webkit-scrollbar { width:3px; }
-  .feed-scroll::-webkit-scrollbar-track { background:transparent; }
-  .feed-scroll::-webkit-scrollbar-thumb { background:rgba(0,212,255,0.2);border-radius:2px; }
+/* BRACKET CORNERS */
+.bracket { position:relative; }
+.bracket::before,.bracket::after { content:'';position:absolute;width:16px;height:16px;border-color:rgba(0,212,255,0.4);border-style:solid; }
+.bracket::before { top:-1px;left:-1px;border-width:2px 0 0 2px;border-radius:2px 0 0 0; }
+.bracket::after  { bottom:-1px;right:-1px;border-width:0 2px 2px 0;border-radius:0 0 2px 0; }
+.bracket .br-tr,.bracket .br-bl { position:absolute;width:16px;height:16px;border-color:rgba(0,212,255,0.4);border-style:solid; }
+.bracket .br-tr { top:-1px;right:-1px;border-width:2px 2px 0 0;border-radius:0 2px 0 0; }
+.bracket .br-bl { bottom:-1px;left:-1px;border-width:0 0 2px 2px;border-radius:0 0 0 2px; }
 
-  /* PULSE */
-  @keyframes pulseRing { 0%{box-shadow:0 0 0 0 rgba(0,255,136,0.35)} 70%{box-shadow:0 0 0 12px rgba(0,255,136,0)} 100%{box-shadow:0 0 0 0 rgba(0,255,136,0)} }
-  .pulse { animation:pulseRing 0.8s ease-out; }
+/* TYPOGRAPHY */
+.slabel { font-family:'Share Tech Mono',monospace;font-size:0.58rem;letter-spacing:0.2em;color:var(--cyan);text-transform:uppercase;opacity:0.6;display:block;margin-bottom:0.5rem; }
+.flabel { font-family:'Share Tech Mono',monospace;font-size:0.6rem;letter-spacing:0.14em;color:rgba(0,212,255,0.6);text-transform:uppercase;display:block;margin-bottom:6px; }
+.sval { font-family:'Orbitron',sans-serif;font-size:1.6rem;font-weight:700;color:var(--cyan);text-shadow:0 0 20px rgba(0,212,255,0.3);margin-top:4px;line-height:1; }
+.t-ul { display:inline-block;position:relative; }
+.t-ul::after { content:'';position:absolute;bottom:-4px;left:0;right:0;height:1px;background:linear-gradient(90deg,var(--cyan),transparent); }
 
-  /* LIVE INDICATOR */
-  .live-pulse { display:inline-flex;align-items:center;gap:6px;font-family:'Share Tech Mono',monospace;font-size:0.58rem;letter-spacing:0.15em;color:var(--green);text-transform:uppercase; }
-  .live-dot { width:7px;height:7px;border-radius:50%;background:var(--green);animation:pg 1.5s infinite; }
+/* HEALTH BAR */
+.hbw { width:100%;background:rgba(255,255,255,0.04);border-radius:2px;height:2px;margin-top:8px;overflow:hidden; }
+.hb  { height:100%;border-radius:2px;background:linear-gradient(90deg,var(--cyan),rgba(0,212,255,0.3));transition:width 0.5s; }
 
-  /* META STRIP */
-  .meta-strip { background:rgba(0,212,255,0.02);border:1px solid rgba(0,212,255,0.07);border-radius:8px;padding:12px 20px;display:flex;gap:28px;align-items:center;flex-wrap:wrap;font-family:'Share Tech Mono',monospace;font-size:0.62rem;letter-spacing:0.08em;color:rgba(255,255,255,0.35); }
-  .meta-strip strong { color:rgba(0,212,255,0.7);font-weight:400;margin-left:6px; }
+/* INPUTS */
+.inp {
+  width:100%;background:rgba(0,212,255,0.03);border:1px solid rgba(0,212,255,0.12);border-radius:8px;
+  padding:12px 16px;color:white;font-family:'Rajdhani',sans-serif;font-size:1rem;font-weight:500;
+  outline:none;transition:border-color 0.3s,background 0.3s,box-shadow 0.3s;
+}
+.inp:focus { border-color:rgba(0,212,255,0.4);background:rgba(0,212,255,0.06);box-shadow:0 0 0 3px rgba(0,212,255,0.06); }
+.inp::placeholder { color:rgba(255,255,255,0.15);font-weight:400; }
+select.inp { appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='none' stroke='rgba(0,212,255,0.5)' stroke-width='2' viewBox='0 0 24 24'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;padding-right:38px; }
+select.inp option { background:#0B1120;color:white; }
 
-  /* STAT MINI */
-  .stat-mini { background:rgba(0,212,255,0.025);border:1px solid rgba(0,212,255,0.08);border-radius:8px;padding:14px 18px;display:flex;flex-direction:column;gap:4px; }
+/* BUTTONS */
+.btn-p {
+  background:linear-gradient(135deg,var(--blue),var(--cyan));color:var(--dark);
+  font-family:'Orbitron',sans-serif;font-size:0.72rem;font-weight:700;letter-spacing:0.15em;
+  padding:14px 28px;border-radius:8px;border:none;transition:all 0.3s;
+  text-transform:uppercase;width:100%;display:block;text-align:center;
+  box-shadow:0 4px 24px rgba(0,212,255,0.2);position:relative;overflow:hidden;
+}
+.btn-p::before { content:'';position:absolute;top:0;left:-100%;width:100%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.15),transparent);transition:left 0.4s; }
+.btn-p:hover::before { left:100%; }
+.btn-p:hover { box-shadow:0 6px 32px rgba(0,212,255,0.4);transform:translateY(-2px); }
 
-  /* V DIVIDER */
-  .v-div { width:1px;background:linear-gradient(to bottom,transparent,rgba(0,212,255,0.15) 20%,rgba(0,212,255,0.15) 80%,transparent);align-self:stretch;flex-shrink:0; }
+.btn-red {
+  background:rgba(255,59,59,0.07);border:1px solid rgba(255,59,59,0.28);color:var(--red);
+  font-family:'Orbitron',sans-serif;font-size:0.62rem;font-weight:700;letter-spacing:0.1em;
+  padding:11px 20px;border-radius:8px;transition:all 0.3s;text-transform:uppercase;
+  width:100%;
+}
+.btn-red:hover { background:rgba(255,59,59,0.14);border-color:rgba(255,59,59,0.5);box-shadow:0 0 20px rgba(255,59,59,0.12); }
+.btn-red:disabled { opacity:0.4; }
 
-  /* TITLE UNDERLINE */
-  .t-ul { display:inline-block;position:relative; }
-  .t-ul::after { content:'';position:absolute;bottom:-4px;left:0;right:0;height:1px;background:linear-gradient(90deg,var(--cyan),transparent); }
+.btn-dl {
+  background:rgba(0,255,136,0.05);border:1px solid rgba(0,255,136,0.2);color:var(--green);
+  font-family:'Orbitron',sans-serif;font-size:0.68rem;font-weight:600;letter-spacing:0.1em;
+  padding:14px 36px;border-radius:8px;transition:all 0.3s;text-decoration:none;
+  display:inline-flex;align-items:center;gap:10px;text-transform:uppercase;
+}
+.btn-dl:hover { background:rgba(0,255,136,0.09);border-color:rgba(0,255,136,0.38);box-shadow:0 0 24px rgba(0,255,136,0.1);transform:translateY(-1px); }
 
-  /* ERROR */
-  #errorBox { font-family:'Share Tech Mono',monospace;font-size:0.6rem;color:var(--red);background:rgba(255,59,59,0.05);border:1px solid rgba(255,59,59,0.2);padding:10px;border-radius:6px;text-align:center;margin-top:10px;letter-spacing:0.05em; }
-  .hidden { display:none !important; }
+/* TIMER */
+.timer-num { font-family:'Orbitron',sans-serif;font-size:3.2rem;font-weight:900;color:var(--red);text-shadow:0 0 24px rgba(255,59,59,0.4);line-height:1;letter-spacing:0.05em; }
+.timer-sep { font-family:'Orbitron',sans-serif;font-size:2.8rem;font-weight:900;color:rgba(255,59,59,0.3);animation:bs 1s infinite;align-self:flex-end;margin-bottom:2px; }
+@keyframes bs { 0%,100%{opacity:1} 50%{opacity:0.12} }
+
+/* SCAN LINE */
+.scan-line { position:absolute;left:12px;right:12px;height:2px;background:linear-gradient(90deg,transparent,var(--cyan),transparent);box-shadow:0 0 12px rgba(0,212,255,0.7);animation:scan 2.5s ease-in-out infinite;pointer-events:none;z-index:2; }
+@keyframes scan { 0%{top:12px;opacity:0} 10%{opacity:1} 90%{opacity:1} 100%{top:calc(100% - 12px);opacity:0} }
+
+/* QR WRAP */
+.qr-wrap { position:relative;display:inline-block;background:rgba(6,12,24,0.97);border:1px solid rgba(0,212,255,0.16);border-radius:12px;padding:20px; }
+.qr-wrap::before,.qr-wrap::after { content:'';position:absolute;width:22px;height:22px;border-color:var(--cyan);border-style:solid; }
+.qr-wrap::before { top:-1px;left:-1px;border-width:2px 0 0 2px;border-radius:3px 0 0 0; }
+.qr-wrap::after  { bottom:-1px;right:-1px;border-width:0 2px 2px 0;border-radius:0 0 3px 0; }
+.qr-corner-tr,.qr-corner-bl { position:absolute;width:22px;height:22px;border-color:var(--cyan);border-style:solid; }
+.qr-corner-tr { top:-1px;right:-1px;border-width:2px 2px 0 0;border-radius:0 3px 0 0; }
+.qr-corner-bl { bottom:-1px;left:-1px;border-width:0 0 2px 2px;border-radius:0 0 0 3px; }
+
+/* LIVE FEED */
+.feed-item { display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:8px;background:rgba(0,255,136,0.03);border:1px solid rgba(0,255,136,0.08);animation:feedIn 0.4s ease-out;font-family:'Share Tech Mono',monospace;margin-bottom:8px;transition:background 0.3s; }
+.feed-item:hover { background:rgba(0,255,136,0.06); }
+@keyframes feedIn { from{opacity:0;transform:translateX(12px)} to{opacity:1;transform:translateX(0)} }
+.feed-dot { width:6px;height:6px;border-radius:50%;background:var(--green);flex-shrink:0;box-shadow:0 0 8px var(--green);animation:fdot 2s infinite; }
+@keyframes fdot { 0%,100%{opacity:1} 50%{opacity:0.4} }
+.feed-name { color:rgba(255,255,255,0.85);font-size:0.72rem;letter-spacing:0.08em;flex:1; }
+.feed-time { color:rgba(0,212,255,0.45);font-size:0.6rem;letter-spacing:0.1em; }
+.feed-scroll { max-height:320px;overflow-y:auto;padding-right:2px; }
+.feed-scroll::-webkit-scrollbar { width:3px; }
+.feed-scroll::-webkit-scrollbar-track { background:transparent; }
+.feed-scroll::-webkit-scrollbar-thumb { background:rgba(0,212,255,0.2);border-radius:2px; }
+
+/* MISC */
+.live-pulse { display:inline-flex;align-items:center;gap:6px;font-family:'Share Tech Mono',monospace;font-size:0.58rem;letter-spacing:0.15em;color:var(--green);text-transform:uppercase; }
+.live-dot { width:7px;height:7px;border-radius:50%;background:var(--green);animation:pg 1.5s infinite; }
+.meta-strip { background:rgba(0,212,255,0.02);border:1px solid rgba(0,212,255,0.07);border-radius:8px;padding:12px 20px;display:flex;gap:28px;align-items:center;flex-wrap:wrap;font-family:'Share Tech Mono',monospace;font-size:0.62rem;letter-spacing:0.08em;color:rgba(255,255,255,0.35); }
+.meta-strip strong { color:rgba(0,212,255,0.7);font-weight:400;margin-left:6px; }
+.stat-mini { background:rgba(0,212,255,0.025);border:1px solid rgba(0,212,255,0.08);border-radius:8px;padding:14px 18px;display:flex;flex-direction:column;gap:4px; }
+.v-div { width:1px;background:linear-gradient(to bottom,transparent,rgba(0,212,255,0.15) 20%,rgba(0,212,255,0.15) 80%,transparent);align-self:stretch;flex-shrink:0; }
+@keyframes pulseRing { 0%{box-shadow:0 0 0 0 rgba(0,255,136,0.35)} 70%{box-shadow:0 0 0 12px rgba(0,255,136,0)} 100%{box-shadow:0 0 0 0 rgba(0,255,136,0)} }
+.pulse { animation:pulseRing 0.8s ease-out; }
+.animate-pulse { animation:timerPulse 0.7s ease-in-out infinite; }
+@keyframes timerPulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
 </style>
 </head>
 <body>
 
+<!-- CURSOR -->
+<div class="cursor" id="cursor"></div>
+<div class="cursor-ring" id="cursorRing"></div>
+
+<!-- BG -->
 <div class="orb orb-1"></div>
 <div class="orb orb-2"></div>
 <div class="orb orb-3"></div>
 <canvas id="pcvs"></canvas>
-<div class="cursor" id="cursor"></div>
-<div class="cursor-ring" id="cursorRing"></div>
 <div id="sp"></div>
 
 <!-- NAVBAR -->
@@ -258,291 +273,264 @@
 <main style="padding-top:6.5rem;padding-bottom:5rem;">
   <div class="max-w-7xl mx-auto px-8">
 
-    <!-- ══ SETUP VIEW (CENTERED) ══ -->
-    <div id="setupView">
-      <div style="text-align:center;margin-bottom:3rem;">
-        <div class="live-pulse" style="justify-content:center;margin-bottom:12px;">
-          <span class="live-dot" style="background:var(--cyan);"></span>
-          PROFESSOR DASHBOARD
+    {% if qr_image %}
+    <!-- ══════════════════════════════════════ -->
+    <!--            SESSION VIEW               -->
+    <!-- ══════════════════════════════════════ -->
+
+    <!-- Header -->
+    <div style="text-align:center;margin-bottom:1.75rem;">
+      <div class="live-pulse" style="justify-content:center;margin-bottom:10px;">
+        <span class="live-dot"></span>LIVE SESSION ACTIVE
+      </div>
+      <h1 style="font-family:'Orbitron',sans-serif;font-size:1.9rem;font-weight:900;letter-spacing:0.03em;">
+        Secure Session <span class="t-ul" style="color:var(--cyan);">Active</span>
+      </h1>
+    </div>
+
+    <!-- Meta Strip -->
+    <div class="meta-strip" style="max-width:64rem;margin:0 auto 1.4rem auto;">
+      <span>SESSION ID <strong>{{session_id}}</strong></span>
+      <span id="sessionMeta" style="margin-left:auto;"></span>
+    </div>
+
+    <!-- Stat Row -->
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0.75rem;max-width:64rem;margin:0 auto 1.4rem auto;">
+      <div class="stat-mini">
+        <span class="slabel" style="margin:0 0 4px;">Live Submissions</span>
+        <div class="sval" id="submissionCount">0</div>
+      </div>
+      <div class="stat-mini">
+        <span class="slabel" style="margin:0 0 4px;">Token Health</span>
+        <div style="font-family:'Orbitron',sans-serif;font-size:1rem;font-weight:700;color:var(--cyan);margin-top:2px;">STRONG</div>
+        <div class="hbw"><div class="hb" style="width:94%;"></div></div>
+      </div>
+      <div class="stat-mini">
+        <span class="slabel" style="margin:0 0 4px;">Time Remaining</span>
+        <div class="sval" id="timer" style="color:var(--red);text-shadow:0 0 20px rgba(255,59,59,0.3);font-size:1.3rem;">--:--</div>
+      </div>
+    </div>
+
+    <!-- QR LEFT | Live Feed RIGHT -->
+    <div style="display:grid;grid-template-columns:auto 1px 1fr;max-width:64rem;margin:0 auto 1.75rem auto;" class="card">
+
+      <!-- LEFT: QR + Timer + End -->
+      <div style="padding:2rem 2.25rem;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.25rem;text-align:center;min-width:280px;">
+        <div style="display:flex;align-items:center;gap:8px;align-self:stretch;">
+          <div style="width:14px;height:1px;background:rgba(0,212,255,0.3);"></div>
+          <span class="slabel" style="margin:0;">// QR Code</span>
+          <div style="flex:1;height:1px;background:linear-gradient(90deg,rgba(0,212,255,0.15),transparent);"></div>
         </div>
-        <h1 style="font-family:'Orbitron',sans-serif;font-size:2rem;font-weight:900;line-height:1.15;letter-spacing:0.03em;">
-          New Attendance <span class="t-ul" style="color:var(--cyan);">Session</span>
-        </h1>
-        <p style="font-family:'Rajdhani',sans-serif;font-size:1rem;color:rgba(255,255,255,0.26);margin-top:10px;letter-spacing:0.06em;">Configure session parameters to generate a secure QR token</p>
+
+        <div class="qr-wrap">
+          <div class="qr-corner-tr"></div>
+          <div class="qr-corner-bl"></div>
+          <div class="scan-line"></div>
+          <img id="qrImage" src="data:image/png;base64,{{qr_image}}" style="width:196px;height:196px;background:white;padding:8px;border-radius:8px;display:block;">
+        </div>
+
+        <p style="font-family:'Share Tech Mono',monospace;font-size:0.56rem;color:rgba(0,212,255,0.4);letter-spacing:0.08em;">QR refreshes every 90s</p>
+
+        <button id="endBtn" onclick="endSession(event)" class="btn-red">
+          End Session Early
+        </button>
       </div>
 
-      <!-- CENTERED FORM -->
-      <div style="display:flex;justify-content:center;">
-        <div class="card bracket" style="width:100%;max-width:28rem;padding:2.25rem;position:relative;">
-          <div class="br-tr"></div><div class="br-bl"></div>
+      <!-- DIVIDER -->
+      <div class="v-div" style="margin:1.5rem 0;"></div>
 
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:1.5rem;">
-            <div style="width:18px;height:1px;background:rgba(0,212,255,0.35);"></div>
-            <span class="slabel" style="margin:0;">// Start New Session</span>
-            <div style="flex:1;height:1px;background:linear-gradient(90deg,rgba(0,212,255,0.18),transparent);"></div>
+      <!-- RIGHT: Live Feed -->
+      <div style="padding:2rem 2rem 2rem 2.25rem;display:flex;flex-direction:column;gap:1rem;min-width:0;">
+
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <div style="width:14px;height:1px;background:rgba(0,255,136,0.3);"></div>
+            <span class="slabel" style="margin:0;color:var(--green);opacity:0.7;">// Live Attendance Feed</span>
           </div>
+          <div class="live-pulse"><span class="live-dot"></span>LIVE</div>
+        </div>
 
-          <form id="sessionForm" method="POST">
-            <div style="display:flex;flex-direction:column;gap:1rem;">
-              <div>
-                <label class="flabel">Professor Email</label>
-                <input id="in_email" name="email" type="email" class="inp" placeholder="professor@institution.edu">
-              </div>
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;">
-                <div>
-                  <label class="flabel">Subject Code</label>
-                  <input id="in_subject" name="subject" class="inp" placeholder="e.g. CS401">
-                </div>
-                <div>
-                  <label class="flabel">Section</label>
-                  <input id="in_section" name="section" class="inp" placeholder="e.g. A">
-                </div>
-              </div>
-              <div>
-                <label class="flabel">Department</label>
-                <input id="in_dept" name="department" class="inp" placeholder="e.g. CSE">
-              </div>
-              <div>
-                <label class="flabel">Session Duration</label>
-                <select id="in_duration" name="duration" class="inp">
-                  <option value="60">1 Minute (Quick Test)</option>
-                  <option value="180">3 Minutes</option>
-                  <option value="300" selected>5 Minutes (Standard)</option>
-                </select>
-              </div>
+        <!-- Empty State -->
+        <div id="feedEmpty" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:3rem 1rem;opacity:0.35;">
+          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="rgba(0,212,255,0.5)" stroke-width="1"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+          <span style="font-family:'Share Tech Mono',monospace;font-size:0.62rem;letter-spacing:0.1em;color:rgba(0,212,255,0.5);">AWAITING SUBMISSIONS...</span>
+        </div>
 
-              <div id="errorBox" class="hidden">⚠ All fields must be filled before generating QR.</div>
+        <!-- Feed List -->
+        <ul id="recentList" class="feed-scroll" style="flex:1;list-style:none;"></ul>
 
-              <button type="button" onclick="validateAndSubmit()" class="btn-p" style="margin-top:0.5rem;">
-                ⬡ &nbsp;Generate Secure QR
-              </button>
-            </div>
-          </form>
+        <!-- Footer Stats -->
+        <div style="border-top:1px solid rgba(0,212,255,0.07);padding-top:12px;display:flex;gap:24px;flex-shrink:0;">
+          <div>
+            <div style="font-family:'Share Tech Mono',monospace;font-size:0.54rem;letter-spacing:0.12em;color:rgba(0,212,255,0.4);margin-bottom:3px;">TOTAL ENTRIES</div>
+            <div style="font-family:'Orbitron',sans-serif;font-size:1rem;font-weight:700;color:var(--green);" id="feedTotal">0</div>
+          </div>
         </div>
       </div>
-    </div><!-- /setupView -->
+    </div>
 
-    <!-- ══ SESSION VIEW ══ -->
-    <div id="sessionView" class="hidden">
+    <!-- Download -->
+    <div style="text-align:center;">
+      <a href="/download_report/{{session_id}}" class="btn-dl">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 15V3m0 12l-4-4m4 4l4-4M2 17l.621 2.485A2 2 0 004.561 21h14.878a2 2 0 001.94-1.515L22 17"/></svg>
+        Download Current Report
+      </a>
+    </div>
 
-      <!-- Header -->
-      <div style="text-align:center;margin-bottom:1.75rem;">
-        <div class="live-pulse" style="justify-content:center;margin-bottom:10px;">
-          <span class="live-dot"></span>LIVE SESSION ACTIVE
-        </div>
-        <h1 style="font-family:'Orbitron',sans-serif;font-size:1.9rem;font-weight:900;letter-spacing:0.03em;">
-          Secure Session <span class="t-ul" style="color:var(--cyan);">Active</span>
-        </h1>
+    {% else %}
+    <!-- ══════════════════════════════════════ -->
+    <!--             SETUP VIEW                -->
+    <!-- ══════════════════════════════════════ -->
+
+    <div style="text-align:center;margin-bottom:3rem;">
+      <div class="live-pulse" style="justify-content:center;margin-bottom:12px;">
+        <span class="live-dot" style="background:var(--cyan);animation-name:pg;"></span>
+        PROFESSOR DASHBOARD
       </div>
+      <h1 style="font-family:'Orbitron',sans-serif;font-size:2rem;font-weight:900;line-height:1.15;letter-spacing:0.03em;">
+        New Attendance <span class="t-ul" style="color:var(--cyan);">Session</span>
+      </h1>
+      <p style="font-family:'Rajdhani',sans-serif;font-size:1rem;color:rgba(255,255,255,0.26);margin-top:10px;letter-spacing:0.06em;">Configure session parameters to generate a secure QR token</p>
+    </div>
 
-      <!-- Meta Strip -->
-      <div class="meta-strip" style="max-width:64rem;margin:0 auto 1.4rem auto;">
-        <span>SUBJECT <strong id="dispSubject">—</strong></span>
-        <span>DEPT <strong id="dispDept">—</strong></span>
-        <span>SESSION ID <strong id="dispSessionId">—</strong></span>
-        <span id="sessionMeta" style="margin-left:auto;"></span>
-      </div>
+    <div style="display:flex;justify-content:center;">
+      <div class="card bracket" style="width:100%;max-width:28rem;padding:2.25rem;">
+        <div class="br-tr"></div><div class="br-bl"></div>
 
-      <!-- Stat Row -->
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0.75rem;max-width:64rem;margin:0 auto 1.4rem auto;">
-        <div class="stat-mini">
-          <span class="slabel" style="margin:0 0 4px;">Live Submissions</span>
-          <div class="sval" id="subCount">0</div>
-        </div>
-        <div class="stat-mini">
-          <span class="slabel" style="margin:0 0 4px;">Token Health</span>
-          <div style="font-family:'Orbitron',sans-serif;font-size:1rem;font-weight:700;color:var(--cyan);margin-top:2px;">STRONG</div>
-          <div class="hbw"><div class="hb" style="width:94%;"></div></div>
-        </div>
-        <div class="stat-mini">
-          <span class="slabel" style="margin:0 0 4px;">Session Uptime</span>
-          <div class="sval" id="uptimeEl" style="font-size:1.3rem;">00:00</div>
-        </div>
-      </div>
-
-      <!-- QR LEFT | Live Feed RIGHT -->
-      <div style="display:grid;grid-template-columns:auto 1px 1fr;max-width:64rem;margin:0 auto 1.75rem auto;" class="card">
-
-        <!-- LEFT — QR + Timer -->
-        <div style="padding:2rem 2.25rem;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.25rem;text-align:center;min-width:280px;">
-          <div style="display:flex;align-items:center;gap:8px;align-self:stretch;">
-            <div style="width:14px;height:1px;background:rgba(0,212,255,0.3);"></div>
-            <span class="slabel" style="margin:0;">// QR Code</span>
-            <div style="flex:1;height:1px;background:linear-gradient(90deg,rgba(0,212,255,0.15),transparent);"></div>
-          </div>
-
-          <div class="qr-wrap" style="position:relative;">
-            <div class="qr-corner-tr"></div><div class="qr-corner-bl"></div>
-            <div class="scan-line"></div>
-            <img id="qrImg" src="" alt="QR Code" style="width:196px;height:196px;background:white;padding:8px;border-radius:8px;display:block;">
-          </div>
-
-          <div style="display:flex;align-items:flex-end;gap:4px;justify-content:center;">
-            <div class="timer-num" id="timerMins">00</div>
-            <div class="timer-sep">:</div>
-            <div class="timer-num" id="timerSecs">00</div>
-          </div>
-
-          <div class="hbw" style="width:196px;height:3px;">
-            <div id="timerBar" class="hb" style="background:linear-gradient(90deg,var(--red),rgba(255,59,59,0.3));width:100%;transition:width 0.9s linear;"></div>
-          </div>
-
-          <button id="endBtn" onclick="endSession(event)" class="btn-red" style="width:100%;max-width:196px;">
-            End Session
-          </button>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:1.5rem;">
+          <div style="width:18px;height:1px;background:rgba(0,212,255,0.35);"></div>
+          <span class="slabel" style="margin:0;">// Start New Session</span>
+          <div style="flex:1;height:1px;background:linear-gradient(90deg,rgba(0,212,255,0.18),transparent);"></div>
         </div>
 
-        <!-- DIVIDER -->
-        <div class="v-div" style="margin:1.5rem 0;"></div>
-
-        <!-- RIGHT — Live Feed -->
-        <div style="padding:2rem 2rem 2rem 2.25rem;display:flex;flex-direction:column;gap:1rem;min-width:0;">
-
-          <div style="display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
-            <div style="display:flex;align-items:center;gap:8px;">
-              <div style="width:14px;height:1px;background:rgba(0,255,136,0.3);"></div>
-              <span class="slabel" style="margin:0;color:var(--green);opacity:0.7;">// Live Attendance Feed</span>
-            </div>
-            <div class="live-pulse"><span class="live-dot"></span>LIVE</div>
-          </div>
-
-          <!-- Empty State -->
-          <div id="feedEmpty" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:3rem 1rem;opacity:0.35;">
-            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="rgba(0,212,255,0.5)" stroke-width="1"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
-            <span style="font-family:'Share Tech Mono',monospace;font-size:0.62rem;letter-spacing:0.1em;color:rgba(0,212,255,0.5);">AWAITING SUBMISSIONS...</span>
-          </div>
-
-          <!-- Feed List -->
-          <div id="feedList" class="feed-scroll" style="flex:1;display:none;"></div>
-
-          <!-- Footer Stats -->
-          <div style="border-top:1px solid rgba(0,212,255,0.07);padding-top:12px;display:flex;gap:24px;flex-shrink:0;">
+        <form method="POST">
+          <div style="display:flex;flex-direction:column;gap:1rem;">
             <div>
-              <div style="font-family:'Share Tech Mono',monospace;font-size:0.54rem;letter-spacing:0.12em;color:rgba(0,212,255,0.4);margin-bottom:3px;">TOTAL ENTRIES</div>
-              <div style="font-family:'Orbitron',sans-serif;font-size:1rem;font-weight:700;color:var(--green);" id="feedTotal">0</div>
+              <label class="flabel">Professor Email</label>
+              <input name="email" type="email" class="inp" placeholder="professor@institution.edu" required>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;">
+              <div>
+                <label class="flabel">Subject Code</label>
+                <input name="subject" class="inp" placeholder="e.g. CS401" required>
+              </div>
+              <div>
+                <label class="flabel">Section</label>
+                <input name="section" class="inp" placeholder="e.g. A" required>
+              </div>
             </div>
             <div>
-              <div style="font-family:'Share Tech Mono',monospace;font-size:0.54rem;letter-spacing:0.12em;color:rgba(0,212,255,0.4);margin-bottom:3px;">LAST ENTRY</div>
-              <div style="font-family:'Share Tech Mono',monospace;font-size:0.75rem;color:rgba(255,255,255,0.5);" id="feedLast">—</div>
+              <label class="flabel">Department</label>
+              <input name="department" class="inp" placeholder="e.g. CSE" required>
             </div>
+            <div>
+              <label class="flabel">Session Duration</label>
+              <select name="duration" class="inp" required>
+                <option value="60">1 Minute (Quick Test)</option>
+                <option value="120">2 Minutes</option>
+                <option value="300" selected>5 Minutes (Standard)</option>
+              </select>
+            </div>
+            <button type="submit" class="btn-p" style="margin-top:0.5rem;">
+              ⬡ &nbsp;Generate Secure QR
+            </button>
           </div>
-        </div>
+        </form>
       </div>
+    </div>
 
-      <!-- Download -->
-      <div style="text-align:center;">
-        <a id="downloadBtn" href="#" class="btn-dl">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 15V3m0 12l-4-4m4 4l4-4M2 17l.621 2.485A2 2 0 004.561 21h14.878a2 2 0 001.94-1.515L22 17"/></svg>
-          Download Attendance Report
-        </a>
-      </div>
+    {% endif %}
 
-    </div><!-- /sessionView -->
   </div>
 </main>
 
 <script>
-/* Flask Data — unchanged */
-const FLASK = {
-  qr_image:   "{{ qr_image | default('') }}",
-  session_id: "{{ session_id | default('') }}",
-  subject:    "{{ subject | default('') }}",
-  section:    "{{ section | default('') }}",
-  department: "{{ department | default('') }}",
-  start_time: {{ start_time | default(0) }},
-  duration:   {{ duration | default(300) }}
-};
+/* ── Flask Data ── */
+const sessionId    = "{{session_id}}";
+const sessionStart = {{start_time or 0}};
+const duration     = {{duration or 300}};
 
-/* Form Validation — logic unchanged */
-function validateAndSubmit() {
-  const email   = document.getElementById('in_email').value.trim();
-  const subject = document.getElementById('in_subject').value.trim();
-  const section = document.getElementById('in_section').value.trim();
-  const dept    = document.getElementById('in_dept').value.trim();
-  const error   = document.getElementById('errorBox');
-  if (!email || !subject || !section || !dept) {
-    error.classList.remove('hidden');
-    gsap.fromTo("#errorBox", {x:-5}, {x:5, duration:0.05, repeat:6, yoyo:true});
+/* ── End Session ── */
+function endSession(event) {
+  if (confirm("Confirm: Stop attendance and generate final report?")) {
+    const btn = event.target;
+    btn.disabled = true;
+    btn.innerText = "Processing...";
+    fetch(`/end_session/${sessionId}`)
+      .then(res => res.json())
+      .then(data => { alert("Session Terminated. Report emailed."); location.reload(); })
+      .catch(err => { console.error("Error:", err); btn.disabled = false; btn.innerText = "End Session Early"; });
+  }
+}
+
+/* ── Timer ── */
+function updateTimer() {
+  if (!sessionStart) return;
+  const now       = Date.now() / 1000;
+  const remaining = duration - (now - sessionStart);
+  if (remaining <= 0) {
+    fetch(`/end_session/${sessionId}`)
+      .then(res => res.json())
+      .then(data => { alert("Session ended. Attendance report emailed."); location.reload(); })
+      .catch(err => { location.reload(); });
     return;
   }
-  error.classList.add('hidden');
-  document.getElementById('sessionForm').submit();
-}
-
-/* Session Init — logic unchanged */
-const hasSession = FLASK.qr_image && FLASK.qr_image !== '' && !FLASK.qr_image.includes('{{');
-if (hasSession) {
-  document.getElementById('setupView').classList.add('hidden');
-  document.getElementById('sessionView').classList.remove('hidden');
-  document.getElementById('dispSubject').textContent  = FLASK.subject + ' — ' + FLASK.section;
-  document.getElementById('dispDept').textContent     = FLASK.department;
-  document.getElementById('dispSessionId').textContent = FLASK.session_id.substring(0,8).toUpperCase();
-  document.getElementById('qrImg').src = 'data:image/png;base64,' + FLASK.qr_image;
-  document.getElementById('downloadBtn').href = '/download_report/' + FLASK.session_id;
-  startSessionLoops();
-}
-
-/* Session Loops — logic unchanged */
-function startSessionLoops() {
-  let up = FLASK.start_time ? Math.floor(Date.now()/1000) - FLASK.start_time : 0;
-  setInterval(() => {
-    up++;
-    const el = document.getElementById('uptimeEl');
-    if (el) el.textContent = String(Math.floor(up/60)).padStart(2,'0') + ':' + String(up%60).padStart(2,'0');
-  }, 1000);
-
-  function updateTimer() {
-    const rem = Math.max(0, FLASK.duration - (Date.now()/1000 - FLASK.start_time));
-    document.getElementById('timerMins').textContent = String(Math.floor(rem/60)).padStart(2,'0');
-    document.getElementById('timerSecs').textContent = String(Math.floor(rem%60)).padStart(2,'0');
-    document.getElementById('timerBar').style.width  = (rem/FLASK.duration*100) + '%';
-    if (rem <= 0) location.reload();
+  const m = Math.floor(remaining / 60);
+  const s = Math.floor(remaining % 60);
+  const timerEl = document.getElementById("timer");
+  if (timerEl) {
+    timerEl.innerText = `${m}:${s < 10 ? "0" : ""}${s}`;
+    if (remaining < 30) timerEl.classList.add("animate-pulse");
   }
-  setInterval(updateTimer, 1000);
-  updateTimer();
+}
 
-  let prevCount = 0;
-  function getStats() {
-    fetch('/session_stats/' + FLASK.session_id)
-      .then(r => r.json())
-      .then(d => {
-        const count = d.count;
-        document.getElementById('subCount').textContent  = count;
-        document.getElementById('feedTotal').textContent = count;
+/* ── QR Refresh ── */
+function refreshQR() {
+  if (!sessionId) return;
+  fetch(`/refresh_qr/${sessionId}`)
+    .then(res => res.json())
+    .then(data => {
+      if (data.expired) { alert("Session expired. Report sent to professor."); location.reload(); return; }
+      if (data.qr) document.getElementById("qrImage").src = "data:image/png;base64," + data.qr;
+    })
+    .catch(err => console.error("QR refresh error:", err));
+}
 
-        const feedEmpty = document.getElementById('feedEmpty');
-        const feedList  = document.getElementById('feedList');
-        if (count > 0) { feedEmpty.style.display='none'; feedList.style.display='block'; }
+/* ── Stats ── */
+function updateStats() {
+  if (!sessionId) return;
+  fetch(`/session_stats/${sessionId}`)
+    .then(res => res.json())
+    .then(data => {
+      const count = data.count;
+      document.getElementById("submissionCount").innerText = count;
+      document.getElementById("feedTotal").innerText = count;
 
-        feedList.innerHTML = d.recent.map((item, i) => `
-          <div class="feed-item" style="animation-delay:${i*0.05}s">
-            <div class="feed-dot"></div>
-            <span class="feed-name">${item[0]}</span>
-            <span class="feed-time">${item[1]}</span>
-          </div>
-        `).join('');
+      const feedEmpty = document.getElementById("feedEmpty");
+      const list      = document.getElementById("recentList");
+      if (count > 0 && feedEmpty) feedEmpty.style.display = "none";
 
-        if (d.recent && d.recent.length > 0) {
-          document.getElementById('feedLast').textContent = d.recent[0][1] || '—';
-        }
-        if (count > prevCount) {
-          const el = document.getElementById('subCount');
-          el.classList.remove('pulse'); void el.offsetWidth; el.classList.add('pulse');
-          prevCount = count;
-        }
+      list.innerHTML = "";
+      data.recent.forEach((item, i) => {
+        const li = document.createElement("div");
+        li.className = "feed-item";
+        li.style.animationDelay = (i * 0.05) + "s";
+        li.innerHTML = `<div class="feed-dot"></div><span class="feed-name">${item[0]}</span><span class="feed-time">${item[1]}</span>`;
+        list.appendChild(li);
       });
-  }
-  setInterval(getStats, 3000);
-  getStats();
+    });
 }
 
-/* End Session — logic unchanged */
-function endSession(e) {
-  if (!confirm('End session early?')) return;
-  fetch('/end_session/' + FLASK.session_id).then(() => location.reload());
+/* ── Start Loops ── */
+if (sessionId) {
+  updateTimer();
+  updateStats();
+  setInterval(updateTimer,  1000);
+  setInterval(updateStats,  3000);
+  setInterval(refreshQR,   90000);
 }
 
-/* Particles */
+/* ── Particles ── */
 const cvs = document.getElementById('pcvs'), ctx = cvs.getContext('2d');
 function rsz() { cvs.width=window.innerWidth; cvs.height=window.innerHeight; }
 rsz(); window.addEventListener('resize', rsz);
@@ -562,10 +550,9 @@ const pts = Array.from({length:55}, () => ({
   requestAnimationFrame(draw);
 })();
 
-/* Cursor */
-const cursor = document.getElementById('cursor');
+/* ── Cursor ── */
+const cursor    = document.getElementById('cursor');
 const cursorRing = document.getElementById('cursorRing');
-
 let mouseX = 0, mouseY = 0, ringX = 0, ringY = 0;
 
 document.addEventListener('mousemove', e => {
@@ -582,61 +569,25 @@ function animateCursorRing() {
   cursorRing.style.top  = ringY + 'px';
   requestAnimationFrame(animateCursorRing);
 }
-// Start ring animation
 animateCursorRing();
 
-// If device is touch / coarse pointer, hide custom cursor and use native cursors
-if ('ontouchstart' in window || window.matchMedia && window.matchMedia('(pointer:coarse)').matches) {
-  cursor.style.display = 'none';
-  cursorRing.style.display = 'none';
-  document.body.style.cursor = 'auto';
-} else {
-  cursor.style.opacity = '1';
-  cursorRing.style.opacity = '1';
-
-  // Use hit-testing each frame to decide hover / text states so dynamic elements work too
-  const hoverSelectors = ['a', 'button', '.btn-p', '.btn-red', '.back-btn', '.qr-wrap', '.feed-item', '.card', '.btn-dl', 'label'];
-  const textSelectors  = ['input', 'textarea', 'select', '.inp', '[contenteditable]'];
-
-  function updateCursorState() {
-    let el = document.elementFromPoint(mouseX, mouseY);
-    if (!el) return;
-
-    // If over a text control, hide the custom dot (so the native caret is visible)
-    if (el.closest && textSelectors.some(s => el.closest(s))) {
-      cursor.style.opacity = '0';
-      cursorRing.style.opacity = '0.9';
-      cursorRing.style.transform = 'scale(1.6)';
-      cursorRing.style.borderColor = 'rgba(0,212,255,0.65)';
-      return;
-    }
-
-    // If over an interactive control, enlarge the dot and ring
-    if (el.closest && hoverSelectors.some(s => el.closest(s))) {
-      cursor.style.opacity = '1';
-      cursor.style.transform = 'scale(2.4)';
-      cursorRing.style.transform = 'scale(1.35)';
-      cursorRing.style.borderColor = 'rgba(0,212,255,0.9)';
-      return;
-    }
-
-    // Default state
-    cursor.style.opacity = '1';
+document.querySelectorAll('a, button, input, select').forEach(el => {
+  el.addEventListener('mouseenter', () => {
+    cursor.style.transform = 'scale(2.5)';
+    cursorRing.style.transform = 'scale(1.5)';
+    cursorRing.style.borderColor = 'rgba(0,212,255,0.8)';
+  });
+  el.addEventListener('mouseleave', () => {
     cursor.style.transform = 'scale(1)';
     cursorRing.style.transform = 'scale(1)';
     cursorRing.style.borderColor = 'rgba(0,212,255,0.5)';
-  }
+  });
+});
 
-  // Integrate state update into the animation loop by wrapping the ring updater
-  const originalAnimate = animateCursorRing;
-  // We already started animateCursorRing above; create an additional frame-based state updater
-  (function stateLoop(){ updateCursorState(); requestAnimationFrame(stateLoop); })();
-}
-
-/* Scroll Progress */
+/* ── Scroll Progress ── */
 window.addEventListener('scroll', () => {
-  const h=document.documentElement;
-  document.getElementById('sp').style.width=(h.scrollTop/(h.scrollHeight-h.clientHeight)*100)+'%';
+  const h = document.documentElement;
+  document.getElementById('sp').style.width = (h.scrollTop/(h.scrollHeight-h.clientHeight)*100)+'%';
 });
 </script>
 </body>
