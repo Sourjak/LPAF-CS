@@ -24,57 +24,10 @@ body {
   color:white;
   overflow-x:hidden;
   min-height:100vh;
-  cursor:none;
+  /* Simple default cursor restored here */
+  cursor: default;
 }
 
-/* ── Cursor (Smooth GPU Version) ── */
-const cursor = document.getElementById("cursor");
-const cursorRing = document.getElementById("cursorRing");
-
-let mouseX = 0, mouseY = 0;
-let posX = 0, posY = 0;
-let ringX = 0, ringY = 0;
-
-document.addEventListener("mousemove", (e) => {
-  mouseX = e.clientX;
-  mouseY = e.clientY;
-});
-
-function animateCursor() {
-
-  /* Main Cursor (fast follow) */
-  posX += (mouseX - posX) * 0.35;
-  posY += (mouseY - posY) * 0.35;
-
-  cursor.style.transform =
-    `translate3d(${posX - 6}px, ${posY - 6}px, 0)`;
-
-  /* Ring Cursor (slow follow) */
-  ringX += (mouseX - ringX) * 0.12;
-  ringY += (mouseY - ringY) * 0.12;
-
-  cursorRing.style.transform =
-    `translate3d(${ringX - 18}px, ${ringY - 18}px, 0)`;
-
-  requestAnimationFrame(animateCursor);
-}
-
-animateCursor();
-
-/* Hover Effects */
-document.querySelectorAll("a, button, input, select").forEach(el => {
-
-  el.addEventListener("mouseenter", () => {
-    cursor.style.transform += " scale(2.2)";
-    cursorRing.style.transform += " scale(1.5)";
-    cursorRing.style.borderColor = "rgba(0,212,255,0.9)";
-  });
-
-  el.addEventListener("mouseleave", () => {
-    cursorRing.style.borderColor = "rgba(0,212,255,0.5)";
-  });
-
-});
 /* GRID BG */
 body::before {
   content:''; position:fixed; inset:0;
@@ -89,7 +42,7 @@ body::before {
 .orb { position:fixed; border-radius:50%; filter:blur(100px); pointer-events:none; z-index:0; }
 .orb-1 { width:600px;height:600px;background:radial-gradient(circle,rgba(0,80,255,0.14) 0%,transparent 70%);top:-150px;right:-100px;animation:o1 18s ease-in-out infinite alternate; }
 .orb-2 { width:450px;height:450px;background:radial-gradient(circle,rgba(0,212,255,0.08) 0%,transparent 70%);top:40%;left:-120px;animation:o2 22s ease-in-out infinite alternate; }
-.orb-3 { width:380px;height:380px;background:radial-gradient(circle,rgba(139,92,246,0.07) 0%,transparent 70%);bottom:5%;right:10%;animation:o3 20s ease-in-out infinite alternate; }
+.orb-3 { width:380px;height:380px;background:radial-gradient(circle,rgba(139,92,246,0.07) 0%,transparent 70%);bottom:5%;right:10%;animation:o3 20s office ease-in-out infinite alternate; }
 @keyframes o1 { 0%{transform:translate(0,0)} 100%{transform:translate(-30px,25px)} }
 @keyframes o2 { 0%{transform:translate(0,0)} 100%{transform:translate(32px,-28px)} }
 @keyframes o3 { 0%{transform:translate(0,0)} 100%{transform:translate(-22px,20px)} }
@@ -242,18 +195,12 @@ select.inp option { background:#0B1120;color:white; }
 </head>
 <body>
 
-<!-- CURSOR -->
-<div class="cursor" id="cursor"></div>
-<div class="cursor-ring" id="cursorRing"></div>
-
-<!-- BG -->
 <div class="orb orb-1"></div>
 <div class="orb orb-2"></div>
 <div class="orb orb-3"></div>
 <canvas id="pcvs"></canvas>
 <div id="sp"></div>
 
-<!-- NAVBAR -->
 <nav class="px-8 py-4">
   <div class="max-w-7xl mx-auto flex items-center justify-between">
     <div class="flex items-center gap-3">
@@ -274,11 +221,6 @@ select.inp option { background:#0B1120;color:white; }
   <div class="max-w-7xl mx-auto px-8">
 
     {% if qr_image %}
-    <!-- ══════════════════════════════════════ -->
-    <!--            SESSION VIEW               -->
-    <!-- ══════════════════════════════════════ -->
-
-    <!-- Header -->
     <div style="text-align:center;margin-bottom:1.75rem;">
       <div class="live-pulse" style="justify-content:center;margin-bottom:10px;">
         <span class="live-dot"></span>LIVE SESSION ACTIVE
@@ -288,13 +230,11 @@ select.inp option { background:#0B1120;color:white; }
       </h1>
     </div>
 
-    <!-- Meta Strip -->
     <div class="meta-strip" style="max-width:64rem;margin:0 auto 1.4rem auto;">
       <span>SESSION ID <strong>{{session_id}}</strong></span>
       <span id="sessionMeta" style="margin-left:auto;"></span>
     </div>
 
-    <!-- Stat Row -->
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0.75rem;max-width:64rem;margin:0 auto 1.4rem auto;">
       <div class="stat-mini">
         <span class="slabel" style="margin:0 0 4px;">Live Submissions</span>
@@ -311,37 +251,24 @@ select.inp option { background:#0B1120;color:white; }
       </div>
     </div>
 
-    <!-- QR LEFT | Live Feed RIGHT -->
     <div style="display:grid;grid-template-columns:auto 1px 1fr;max-width:64rem;margin:0 auto 1.75rem auto;" class="card">
-
-      <!-- LEFT: QR + Timer + End -->
       <div style="padding:2rem 2.25rem;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.25rem;text-align:center;min-width:280px;">
         <div style="display:flex;align-items:center;gap:8px;align-self:stretch;">
           <div style="width:14px;height:1px;background:rgba(0,212,255,0.3);"></div>
           <span class="slabel" style="margin:0;">// QR Code</span>
           <div style="flex:1;height:1px;background:linear-gradient(90deg,rgba(0,212,255,0.15),transparent);"></div>
         </div>
-
         <div class="qr-wrap">
           <div class="qr-corner-tr"></div>
           <div class="qr-corner-bl"></div>
           <div class="scan-line"></div>
           <img id="qrImage" src="data:image/png;base64,{{qr_image}}" style="width:196px;height:196px;background:white;padding:8px;border-radius:8px;display:block;">
         </div>
-
         <p style="font-family:'Share Tech Mono',monospace;font-size:0.56rem;color:rgba(0,212,255,0.4);letter-spacing:0.08em;">QR refreshes every 90s</p>
-
-        <button id="endBtn" onclick="endSession(event)" class="btn-red">
-          End Session Early
-        </button>
+        <button id="endBtn" onclick="endSession(event)" class="btn-red">End Session Early</button>
       </div>
-
-      <!-- DIVIDER -->
       <div class="v-div" style="margin:1.5rem 0;"></div>
-
-      <!-- RIGHT: Live Feed -->
       <div style="padding:2rem 2rem 2rem 2.25rem;display:flex;flex-direction:column;gap:1rem;min-width:0;">
-
         <div style="display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
           <div style="display:flex;align-items:center;gap:8px;">
             <div style="width:14px;height:1px;background:rgba(0,255,136,0.3);"></div>
@@ -349,17 +276,11 @@ select.inp option { background:#0B1120;color:white; }
           </div>
           <div class="live-pulse"><span class="live-dot"></span>LIVE</div>
         </div>
-
-        <!-- Empty State -->
         <div id="feedEmpty" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:3rem 1rem;opacity:0.35;">
           <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="rgba(0,212,255,0.5)" stroke-width="1"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
           <span style="font-family:'Share Tech Mono',monospace;font-size:0.62rem;letter-spacing:0.1em;color:rgba(0,212,255,0.5);">AWAITING SUBMISSIONS...</span>
         </div>
-
-        <!-- Feed List -->
         <ul id="recentList" class="feed-scroll" style="flex:1;list-style:none;"></ul>
-
-        <!-- Footer Stats -->
         <div style="border-top:1px solid rgba(0,212,255,0.07);padding-top:12px;display:flex;gap:24px;flex-shrink:0;">
           <div>
             <div style="font-family:'Share Tech Mono',monospace;font-size:0.54rem;letter-spacing:0.12em;color:rgba(0,212,255,0.4);margin-bottom:3px;">TOTAL ENTRIES</div>
@@ -369,7 +290,6 @@ select.inp option { background:#0B1120;color:white; }
       </div>
     </div>
 
-    <!-- Download -->
     <div style="text-align:center;">
       <a href="/download_report/{{session_id}}" class="btn-dl">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 15V3m0 12l-4-4m4 4l4-4M2 17l.621 2.485A2 2 0 004.561 21h14.878a2 2 0 001.94-1.515L22 17"/></svg>
@@ -378,10 +298,6 @@ select.inp option { background:#0B1120;color:white; }
     </div>
 
     {% else %}
-    <!-- ══════════════════════════════════════ -->
-    <!--             SETUP VIEW                -->
-    <!-- ══════════════════════════════════════ -->
-
     <div style="text-align:center;margin-bottom:3rem;">
       <div class="live-pulse" style="justify-content:center;margin-bottom:12px;">
         <span class="live-dot" style="background:var(--cyan);animation-name:pg;"></span>
@@ -396,13 +312,11 @@ select.inp option { background:#0B1120;color:white; }
     <div style="display:flex;justify-content:center;">
       <div class="card bracket" style="width:100%;max-width:28rem;padding:2.25rem;">
         <div class="br-tr"></div><div class="br-bl"></div>
-
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:1.5rem;">
           <div style="width:18px;height:1px;background:rgba(0,212,255,0.35);"></div>
           <span class="slabel" style="margin:0;">// Start New Session</span>
           <div style="flex:1;height:1px;background:linear-gradient(90deg,rgba(0,212,255,0.18),transparent);"></div>
         </div>
-
         <form method="POST">
           <div style="display:flex;flex-direction:column;gap:1rem;">
             <div>
@@ -431,26 +345,22 @@ select.inp option { background:#0B1120;color:white; }
                 <option value="300" selected>5 Minutes (Standard)</option>
               </select>
             </div>
-            <button type="submit" class="btn-p" style="margin-top:0.5rem;">
-              ⬡ &nbsp;Generate Secure QR
-            </button>
+            <button type="submit" class="btn-p" style="margin-top:0.5rem;">⬡ &nbsp;Generate Secure QR</button>
           </div>
         </form>
       </div>
     </div>
-
     {% endif %}
 
   </div>
 </main>
 
 <script>
-/* ── Flask Data ── */
+/* Flask Logic */
 const sessionId    = "{{session_id}}";
 const sessionStart = {{start_time or 0}};
 const duration     = {{duration or 300}};
 
-/* ── End Session ── */
 function endSession(event) {
   if (confirm("Confirm: Stop attendance and generate final report?")) {
     const btn = event.target;
@@ -458,20 +368,19 @@ function endSession(event) {
     btn.innerText = "Processing...";
     fetch(`/end_session/${sessionId}`)
       .then(res => res.json())
-      .then(data => { alert("Session Terminated. Report emailed."); location.reload(); })
+      .then(data => { alert("Session Terminated."); location.reload(); })
       .catch(err => { console.error("Error:", err); btn.disabled = false; btn.innerText = "End Session Early"; });
   }
 }
 
-/* ── Timer ── */
 function updateTimer() {
   if (!sessionStart) return;
-  const now       = Date.now() / 1000;
+  const now = Date.now() / 1000;
   const remaining = duration - (now - sessionStart);
   if (remaining <= 0) {
     fetch(`/end_session/${sessionId}`)
       .then(res => res.json())
-      .then(data => { alert("Session ended. Attendance report emailed."); location.reload(); })
+      .then(data => { alert("Session ended."); location.reload(); })
       .catch(err => { location.reload(); });
     return;
   }
@@ -484,7 +393,6 @@ function updateTimer() {
   }
 }
 
-/* ── QR Refresh ── */
 function refreshQR() {
   if (!sessionId) return;
   fetch(`/refresh_qr/${sessionId}`)
@@ -496,7 +404,6 @@ function refreshQR() {
     .catch(err => console.error("QR refresh error:", err));
 }
 
-/* ── Stats ── */
 function updateStats() {
   if (!sessionId) return;
   fetch(`/session_stats/${sessionId}`)
@@ -505,11 +412,9 @@ function updateStats() {
       const count = data.count;
       document.getElementById("submissionCount").innerText = count;
       document.getElementById("feedTotal").innerText = count;
-
       const feedEmpty = document.getElementById("feedEmpty");
-      const list      = document.getElementById("recentList");
+      const list = document.getElementById("recentList");
       if (count > 0 && feedEmpty) feedEmpty.style.display = "none";
-
       list.innerHTML = "";
       data.recent.forEach((item, i) => {
         const li = document.createElement("div");
@@ -521,16 +426,15 @@ function updateStats() {
     });
 }
 
-/* ── Start Loops ── */
 if (sessionId) {
   updateTimer();
   updateStats();
-  setInterval(updateTimer,  1000);
-  setInterval(updateStats,  3000);
-  setInterval(refreshQR,   90000);
+  setInterval(updateTimer, 1000);
+  setInterval(updateStats, 3000);
+  setInterval(refreshQR, 90000);
 }
 
-/* ── Particles ── */
+/* Particles (Background) */
 const cvs = document.getElementById('pcvs'), ctx = cvs.getContext('2d');
 function rsz() { cvs.width=window.innerWidth; cvs.height=window.innerHeight; }
 rsz(); window.addEventListener('resize', rsz);
@@ -550,41 +454,7 @@ const pts = Array.from({length:55}, () => ({
   requestAnimationFrame(draw);
 })();
 
-/* ── Cursor ── */
-const cursor    = document.getElementById('cursor');
-const cursorRing = document.getElementById('cursorRing');
-let mouseX = 0, mouseY = 0, ringX = 0, ringY = 0;
-
-document.addEventListener('mousemove', e => {
-  mouseX = e.clientX;
-  mouseY = e.clientY;
-  cursor.style.left = mouseX - 6 + 'px';
-  cursor.style.top  = mouseY - 6 + 'px';
-});
-
-function animateCursorRing() {
-  ringX += (mouseX - ringX - 18) * 0.12;
-  ringY += (mouseY - ringY - 18) * 0.12;
-  cursorRing.style.left = ringX + 'px';
-  cursorRing.style.top  = ringY + 'px';
-  requestAnimationFrame(animateCursorRing);
-}
-animateCursorRing();
-
-document.querySelectorAll('a, button, input, select').forEach(el => {
-  el.addEventListener('mouseenter', () => {
-    cursor.style.transform = 'scale(2.5)';
-    cursorRing.style.transform = 'scale(1.5)';
-    cursorRing.style.borderColor = 'rgba(0,212,255,0.8)';
-  });
-  el.addEventListener('mouseleave', () => {
-    cursor.style.transform = 'scale(1)';
-    cursorRing.style.transform = 'scale(1)';
-    cursorRing.style.borderColor = 'rgba(0,212,255,0.5)';
-  });
-});
-
-/* ── Scroll Progress ── */
+/* Scroll Progress */
 window.addEventListener('scroll', () => {
   const h = document.documentElement;
   document.getElementById('sp').style.width = (h.scrollTop/(h.scrollHeight-h.clientHeight)*100)+'%';
