@@ -22,7 +22,7 @@ def generate_report(session_id, section, subject, department, email):
 
     # Create full class roll list
     roster = pd.DataFrame({
-        "Roll Number": [str(i) for i in range(1, 61)]
+        "Roll Number": [str(i) for i in range(1, 151)]
     })
 
     attendance["roll"] = attendance["roll"].astype(str)
